@@ -13,9 +13,9 @@ def parse_arguments(print_args=True):
                         help='type of architecture used for training (default: CIFAR10)')
     parser.add_argument('--data_type', default='training', choices=['training', 'test', 'random_hypercube', 'random_100'],
                         help="use training or test data")
-    parser.add_argument('--network_type_coarse', default='FCN', choices=['-', 'AllCNN', 'FCN', 'ResNet', 'VGG', 'MNIST'],
+    parser.add_argument('--network_type_coarse', default='VGG', choices=['-', 'AllCNN', 'FCN', 'ResNet', 'VGG', 'MNIST'],
                         help='type of architecture used for training (default: VGG)')
-    parser.add_argument('--network_type_fine', default='8_Layers',
+    parser.add_argument('--network_type_fine', default='Standard',
                         choices=['Standard', 'Narrow', 'Narrow_with_strides', '8_Layers', 'v1', 'Convolutional', 'FCN4', 'FCN6', 'Wide'],
                         help='name of network structure used for training (default: Standard)')
     parser.add_argument('--early_stopping', dest='early_stopping', action='store_true',
@@ -80,7 +80,7 @@ def parse_arguments(print_args=True):
                         help="saving all intermediate tropical functions")
 
     # Experiment Argument
-    parser.add_argument('--mode', default='compute_network_accuracies',
+    parser.add_argument('--mode', default='exp11_compare_linear_functions',
                         choices=['transformation', 'evaluation', 'exp1_count', 'exp2_val', 'exp3_compare',
                                  'exp4_variation', 'exp5_compute_translation_invariance', 'exp6_add_shifted_functions',
                                  'exp7_implications', 'exp8_extract_weight_matrices',
@@ -104,8 +104,8 @@ def parse_arguments(print_args=True):
     # For ResNet, use weight_decay = 1e-4, learning rate scheduler and batch_size=32.
     if "PYCHARM_HOSTED" in os.environ:
         print('Running in Pycharm.')
-        arg = parser.parse_args(['--early_stopping'])
-        # arg = parser.parse_args(['--weight_decay', '--lr_schedule'])
+        # arg = parser.parse_args(['--early_stopping'])
+        arg = parser.parse_args(['--weight_decay', '--lr_schedule'])
     else:
         arg = parser.parse_args()
 

@@ -1,10 +1,10 @@
 import numpy as np
-from Cleverhans.basic_iterative_method import basic_iterative_method
-from Cleverhans.fast_gradient_method import fast_gradient_method
-from Cleverhans.madry_et_al import madry_et_al
-from Cleverhans.momentum_iterative_method import momentum_iterative_method
-from Cleverhans.projected_gradient_descent import projected_gradient_descent
-from Cleverhans.spsa import spsa
+# from Cleverhans.basic_iterative_method import basic_iterative_method
+# from Cleverhans.fast_gradient_method import fast_gradient_method
+# from Cleverhans.madry_et_al import madry_et_al
+# from Cleverhans.momentum_iterative_method import momentum_iterative_method
+# from Cleverhans.projected_gradient_descent import projected_gradient_descent
+# from Cleverhans.spsa import spsa
 
 
 def generate_adversarial_data(network, x_train, method='fast_gradient'):

@@ -357,7 +357,7 @@ def get_epoch_numbers(arg):
                 '125', '130', '135', '140', '145', '150', '155', '160', '165', '170', '175', '180', '185', '190', '195',
                 '200']
     elif arg.epochs == 'special':
-        return ['13']
+        return ['20']
     else:
         return [None]
 

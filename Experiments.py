@@ -729,6 +729,9 @@ def compute_coefficient_statistics(arg, fast):
 
 
 def compare_linear_functions(outputs):
+    # For debugging:
+    # outputs = {}
+
     def correlation(A, B):
         def subtract_mean(A):
             return A - np.mean(A, axis=1)[:, np.newaxis]
@@ -742,23 +745,16 @@ def compare_linear_functions(outputs):
 
     arg.network_number = network_number
     network = load_network(arg, epoch_number)
-    no_labels = get_no_labels(network)
     pos_terms_0, neg_terms_0 = load_tropical_function(arg, network, arg.data_type, epoch_number, load_negative=True)
     terms_0 = np.vstack(pos_terms_0) - np.vstack(neg_terms_0)
-    true_labels, network_labels = get_grouped_data(arg, network, arg.data_type,
-                                                     get_labels=True, get_data=False)
-    terms_0 = stack_list_with_subgroups(reorder_terms(terms_0, network_labels, true_labels, no_labels, max_data_group_size))
     arg.network_number = network_number_2
     network = load_network(arg, epoch_number)
-    no_labels = get_no_labels(network)
     pos_terms_1, neg_terms_1 = load_tropical_function(arg, network, arg.data_type, epoch_number, load_negative=True)
     terms_1 = np.vstack(pos_terms_1) - np.vstack(neg_terms_1)
-    true_labels, network_labels = get_grouped_data(arg, network, arg.data_type,
-                                                     get_labels=True, get_data=False)
-    terms_1 = stack_list_with_subgroups(reorder_terms(terms_1, network_labels, true_labels, no_labels, max_data_group_size))
-    outputs['new_angles'] = compute_1_1_angles(terms_0, terms_1)
+    # outputs['new_angles'] = compute_1_1_angles(terms_0, terms_1)
+    # outputs['new_distances'] = compute_1_1_euclidean_distances(terms_0, terms_1)
     outputs['new_correlations'] = correlation(terms_0, terms_1)
-    outputs['new_distances'] = compute_1_1_euclidean_distances(terms_0, terms_1)
+    a = 5
 
 
 def compare_activation_patterns():
@@ -1027,14 +1023,17 @@ for epoch_number in epoch_numbers:
         else:
             slide_extracted_function_over_image()
     elif arg.mode == 'exp11_compare_linear_functions':
+        # For Debugging
+        # outputs = compare_linear_functions()
+        # For Running
         with Manager() as manager:
             outputs = manager.dict()
             p = Process(target=compare_linear_functions, args=(outputs,))
             p.start()
             p.join()
-            angles.append(outputs['new_angles'])
+            # angles.append(outputs['new_angles'])
             correlations.append(outputs['new_correlations'])
-            distances.append(outputs['new_distances'])
+            # distances.append(outputs['new_distances'])
     elif arg.mode == 'compute_network_accuracies':
         with Manager() as manager:
             outputs = manager.dict()
@@ -1066,24 +1065,24 @@ if arg.mode == 'compute_network_accuracies':
 
 
 if arg.mode == 'exp11_compare_linear_functions':
-    angles = np.vstack(angles)
+    # angles = np.vstack(angles)
     correlations = np.vstack(correlations)
-    distances = np.vstack(distances)
+    # distances = np.vstack(distances)
     saving_directory = get_saving_directory(arg)
     saving_directory_without_network_number = '/'.join(saving_directory.split('/')[0:-1])
     if arg.data_set == 'MNIST':
         name = arg.network_type_fine
     else:
         name = arg.network_type_coarse
-    path = os.path.join(saving_directory_without_network_number,
+    path = os.path.join(saving_directory_without_network_number, time.strftime("%Y-%m-%d-%H:%M:%S") + '_' +
                         name + '_retrain_angles_correlations_distances_epoch.mat')
     angles_name = name + '_angles'
     correlations_name = name + '_correlations'
     distances_name = name + '_distances'
     Dict = eval("{'" + angles_name + "':0, '" + correlations_name + "':0, '" + distances_name + "':0}")
-    Dict[angles_name] = angles
+    # Dict[angles_name] = angles
     Dict[correlations_name] = correlations
-    Dict[distances_name] = distances
+    # Dict[distances_name] = distances
     savemat(path, Dict)
 
 if arg.mode == 'save_linear_coefficients_to_mat':

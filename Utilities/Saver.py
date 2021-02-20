@@ -56,6 +56,16 @@ def get_saving_directory(arg):
     return save_dir
 
 
+def load_history(arg):
+    save_dir = get_saving_directory(arg)
+    history_dir = os.path.join(save_dir, 'Histories')
+    file_name = get_file_name(arg, '')
+    history_path = os.path.join(history_dir, file_name)
+    with open(history_path, 'rb') as history_file:
+        history = pickle.load(history_file)
+    return history
+
+
 def save(history, arg):
     save_dir = get_saving_directory(arg)
 
