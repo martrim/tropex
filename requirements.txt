@@ -1,0 +1,4 @@
+matplotlib==3.3.3
+nvidia-ml-py3
+tensorflow==2.3.0 # Tensorflow 2.1 bug: data augmentation; Tensorflow 2.2 bug: K.function([inputs], output) does not work properly
+tensorflow-datasets==4.1.0

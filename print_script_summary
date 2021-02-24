@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+exit_statuses=("$@")
+for t in ${!exit_statuses[@]};
+	do if [ ${exit_statuses[$t]} -eq 0 ]; then
+		echo "Command $((t+1)): Success."
+	else
+		echo "Command $((t+1)): Failure."
+	fi
+done
+

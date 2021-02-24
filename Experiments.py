@@ -10,7 +10,7 @@ from Utilities.Tropical_Helper_Functions import evaluate_tropical_function, get_
     get_tropical_function_directory, evaluate_batch_of_tropical_function, flatten_and_stack, \
     load_tropical_function_batch, \
     get_epoch_numbers, compute_1_1_euclidean_distances, compute_1_1_angles, get_associated_training_points, \
-    get_max_data_group_size, reorder_terms,\
+    get_max_data_group_size, reorder_terms, \
     get_activation_patterns, stack_list_with_subgroups, group_points, partition_according_to_correct_indices
 from Utilities.Data_Loader import load_data
 from Utilities.Logger import *
@@ -373,7 +373,7 @@ def extract_weight_matrices():
 
                 A = np.zeros([output_height * output_width * output_channels,
                               (input_height + 2 * padding_height) * (
-                                          input_width + 2 * padding_width) * input_channels + 1])
+                                      input_width + 2 * padding_width) * input_channels + 1])
                 for i in range(output_height):
                     for j in range(output_width):
                         A[((i * output_width + j) * output_channels):((i * output_width + j + 1) * output_channels),
@@ -407,7 +407,7 @@ def extract_weight_matrices():
                         A[((i * output_width + j) * output_channels):((i * output_width + j + 1) * output_channels),
                         1 + ((2 * i * (input_width + padding_width) + 2 * j) * input_channels):1 + (
                                 (2 * i * (
-                                            input_width + padding_width) + 2 * j) * input_channels + filter_length)] = filter_flat
+                                        input_width + padding_width) + 2 * j) * input_channels + filter_length)] = filter_flat
                 bias = np.tile(bias, output_height * output_width)
                 A[:, 0] = bias
                 indices = np.zeros([input_height + 1, input_width + 1, input_channels], dtype=bool)
@@ -604,9 +604,10 @@ def compute_coefficient_statistics(arg, fast):
             angles = np.arccos(1 - cdist(training_functions, test_functions, 'cosine'))
         return distances, angles
 
-
-    pos_training_terms, neg_training_terms = load_tropical_function(arg, network, 'training', epoch_number, load_negative=True, stacked=True)
-    pos_test_terms, neg_test_terms = load_tropical_function(arg, network, 'test', epoch_number, load_negative=True, stacked=True)
+    pos_training_terms, neg_training_terms = load_tropical_function(arg, network, 'training', epoch_number,
+                                                                    load_negative=True, stacked=True)
+    pos_test_terms, neg_test_terms = load_tropical_function(arg, network, 'test', epoch_number, load_negative=True,
+                                                            stacked=True)
     training_terms = pos_training_terms - neg_training_terms
     test_terms = pos_test_terms - neg_test_terms
 
@@ -728,33 +729,33 @@ def compute_coefficient_statistics(arg, fast):
                  true_distances=true_distances, false_distances=false_distances))
 
 
-def compare_linear_functions(outputs):
-    # For debugging:
-    # outputs = {}
-
+def compare_linear_functions():
     def correlation(A, B):
         def subtract_mean(A):
-            return A - np.mean(A, axis=1)[:, np.newaxis]
+            return A - np.mean(A, axis=0)[np.newaxis, :]
 
         A = subtract_mean(A)
         B = subtract_mean(B)
         A_B = np.sum(A * B, axis=0)
         A_A = np.sum(A * A, axis=0)
         B_B = np.sum(B * B, axis=0)
-        return A_B / (np.sqrt(A_A) * np.sqrt(B_B))
+        divisor = np.sqrt(A_A) * np.sqrt(B_B)
+        correlation = np.divide(A_B, divisor, out=np.ones_like(A_B), where=(divisor != 0))
+        if epoch_number == '00':
+            correlation[0] = 0
+        return correlation
 
     arg.network_number = network_number
-    network = load_network(arg, epoch_number)
-    pos_terms_0, neg_terms_0 = load_tropical_function(arg, network, arg.data_type, epoch_number, load_negative=True)
+    pos_terms_0, neg_terms_0 = load_tropical_function(arg, tropical_function_folder, no_labels, arg.data_type,
+                                                      epoch_number, load_negative=True)
     terms_0 = np.vstack(pos_terms_0) - np.vstack(neg_terms_0)
     arg.network_number = network_number_2
-    network = load_network(arg, epoch_number)
-    pos_terms_1, neg_terms_1 = load_tropical_function(arg, network, arg.data_type, epoch_number, load_negative=True)
+    pos_terms_1, neg_terms_1 = load_tropical_function(arg, tropical_function_folder, no_labels, arg.data_type,
+                                                      epoch_number, load_negative=True)
     terms_1 = np.vstack(pos_terms_1) - np.vstack(neg_terms_1)
-    # outputs['new_angles'] = compute_1_1_angles(terms_0, terms_1)
-    # outputs['new_distances'] = compute_1_1_euclidean_distances(terms_0, terms_1)
-    outputs['new_correlations'] = correlation(terms_0, terms_1)
-    a = 5
+    # terms_0 = terms_0[0:no_data_points]
+    # terms_1 = terms_1[0:no_data_points]
+    return correlation(terms_0, terms_1)
 
 
 def compare_activation_patterns():
@@ -843,9 +844,10 @@ def save_to_mat():
     true_distances = np.hstack(true_distances)
     false_distances = np.hstack(false_distances)
 
-    savemat(os.path.join(transformation_path, arg.network_type_fine + '_' + arg.network_number + '_angles_distances.mat'),
-            dict(true_angles=true_angles, false_angles=false_angles,
-                 true_distances=true_distances, false_distances=false_distances))
+    savemat(
+        os.path.join(transformation_path, arg.network_type_fine + '_' + arg.network_number + '_angles_distances.mat'),
+        dict(true_angles=true_angles, false_angles=false_angles,
+             true_distances=true_distances, false_distances=false_distances))
 
 
 def append_coefficient_statistics(arg, epoch_number):
@@ -878,7 +880,8 @@ def interpolation(arg, activation_pattern_changes=True, label_changes=False):
         def reshape_activation_patterns(activation_patterns):
             reshaped_activation_patterns = []
             for activation_pattern in activation_patterns:
-                reshaped_activation_patterns.append(np.reshape(activation_pattern, [different_im_per_batch, no_steps, -1]))
+                reshaped_activation_patterns.append(
+                    np.reshape(activation_pattern, [different_im_per_batch, no_steps, -1]))
             return reshaped_activation_patterns
 
         activation_patterns = get_activation_patterns(arg, network, data_group=modified_capped_image)
@@ -886,14 +889,15 @@ def interpolation(arg, activation_pattern_changes=True, label_changes=False):
         for i in range(different_im_per_batch):
             first_AP_change = no_steps
             for activation_pattern in activation_patterns:
-                unique_activation_pattern, indices = np.unique(activation_pattern[i][0:first_AP_change], return_index=True, axis=0)
+                unique_activation_pattern, indices = np.unique(activation_pattern[i][0:first_AP_change],
+                                                               return_index=True, axis=0)
                 first_AP_change = np.partition(np.append(indices, first_AP_change), 1)[1]
             first_AP_changes.append(first_AP_change)
-            distances_at_first_AP_changes.append(steps[0, min(first_AP_change, no_steps-1)])
+            distances_at_first_AP_changes.append(steps[0, min(first_AP_change, no_steps - 1)])
 
     save_dir = get_saving_directory(arg)
     data_types = ['random_1000', 'random_10000']  # ['training', 'test', 'random', 'random_100']
-    statistics = np.zeros([11*len(data_types)])
+    statistics = np.zeros([11 * len(data_types)])
     for j in range(len(data_types)):
         arg.data_type = data_types[j]
         images, labels = load_data(arg, arg.data_type)
@@ -909,12 +913,13 @@ def interpolation(arg, activation_pattern_changes=True, label_changes=False):
         no_images = 500
         batch_size = 5000
         total_no_images = no_images * no_steps
-        different_im_per_batch = int(batch_size/no_steps)
-        no_iterations = int(np.ceil(total_no_images/batch_size))
+        different_im_per_batch = int(batch_size / no_steps)
+        no_iterations = int(np.ceil(total_no_images / batch_size))
         for i in range(no_iterations):  # x_train.shape[0]
-            image = images[i*different_im_per_batch:(i+1)*different_im_per_batch].reshape([different_im_per_batch, -1])[:, np.newaxis]
+            image = images[i * different_im_per_batch:(i + 1) * different_im_per_batch].reshape(
+                [different_im_per_batch, -1])[:, np.newaxis]
             d = np.random.rand(different_im_per_batch, 3072) * 2 - 1
-            d = d/np.linalg.norm(d, axis=1)[:, np.newaxis]
+            d = d / np.linalg.norm(d, axis=1)[:, np.newaxis]
             d = d[:, :, np.newaxis]
             d_steps = np.dot(d, steps)
             d_steps = np.moveaxis(d_steps, [0, 1, 2], [0, 2, 1])
@@ -930,23 +935,24 @@ def interpolation(arg, activation_pattern_changes=True, label_changes=False):
             Dict['first_label_changes'] = np.array(first_label_changes)
             Dict['distances_at_first_label_changes'] = np.array(distances_at_first_label_changes)
             Dict['no_no_label_changes'] = np.sum(first_label_changes == 0)
-            Dict['distances_at_first_label_changes'] = Dict['distances_at_first_label_changes'][first_label_changes != 0]
+            Dict['distances_at_first_label_changes'] = Dict['distances_at_first_label_changes'][
+                first_label_changes != 0]
             Dict['first_label_changes'] = Dict['first_label_changes'][first_label_changes != 0]
         if activation_pattern_changes:
             Dict['first_AP_changes'] = np.array(first_AP_changes)
             Dict['distances_at_first_AP_changes'] = np.array(distances_at_first_AP_changes)
-            statistics[0+11*j] = np.min(Dict['first_AP_changes'])
-            statistics[1+11*j] = np.mean(Dict['first_AP_changes'])
-            statistics[2+11*j] = np.std(Dict['first_AP_changes'])
-            statistics[3+11*j] = np.max(Dict['first_AP_changes'])
-            statistics[4+11*j] = np.min(Dict['distances_at_first_AP_changes'])
-            statistics[5+11*j] = np.mean(Dict['distances_at_first_AP_changes'])
-            statistics[6+11*j] = np.exp(np.mean(np.log(Dict['distances_at_first_AP_changes'])))
-            statistics[7+11*j] = np.exp(np.std(np.log(Dict['distances_at_first_AP_changes'])))
-            statistics[8+11*j] = np.std(Dict['distances_at_first_AP_changes'])
-            statistics[9+11*j] = np.max(Dict['distances_at_first_AP_changes'])
+            statistics[0 + 11 * j] = np.min(Dict['first_AP_changes'])
+            statistics[1 + 11 * j] = np.mean(Dict['first_AP_changes'])
+            statistics[2 + 11 * j] = np.std(Dict['first_AP_changes'])
+            statistics[3 + 11 * j] = np.max(Dict['first_AP_changes'])
+            statistics[4 + 11 * j] = np.min(Dict['distances_at_first_AP_changes'])
+            statistics[5 + 11 * j] = np.mean(Dict['distances_at_first_AP_changes'])
+            statistics[6 + 11 * j] = np.exp(np.mean(np.log(Dict['distances_at_first_AP_changes'])))
+            statistics[7 + 11 * j] = np.exp(np.std(np.log(Dict['distances_at_first_AP_changes'])))
+            statistics[8 + 11 * j] = np.std(Dict['distances_at_first_AP_changes'])
+            statistics[9 + 11 * j] = np.max(Dict['distances_at_first_AP_changes'])
             accuracy = np.sum(np.argmax(network.predict(images), axis=1) == labels) / labels.size
-            statistics[10+11*j] = accuracy
+            statistics[10 + 11 * j] = accuracy
 
         file_name = arg.data_type + '_interpolation.pkl'
         path = os.path.join(save_dir, file_name)
@@ -958,16 +964,16 @@ def interpolation(arg, activation_pattern_changes=True, label_changes=False):
 def compute_network_accuracies(network, x_train, y_train, x_test, y_test, outputs):
     def compute_accuracy(network, data, true_labels):
         network_labels = np.argmax(network.predict(data), axis=1)
-        accuracy = np.sum(network_labels == true_labels)/true_labels.size
-    
+        accuracy = np.sum(network_labels == true_labels) / true_labels.size
+
     outputs['training'] = compute_accuracy(network, x_train, y_train)
     outputs['test'] = compute_accuracy(network, x_test, y_test)
 
 
-
 logger = get_logger(arg)
 epoch_numbers = get_epoch_numbers(arg)
-# epoch_numbers = ['04']
+no_data_points = 10
+epoch_numbers = ['00', '01', '02']
 
 if arg.mode == 'save_linear_coefficients_to_mat':
     means = []
@@ -984,6 +990,11 @@ if arg.mode == 'exp11_compare_linear_functions':
     network_number = arg.network_number
     network_number_2 = arg.network_number_2
     max_data_group_size = get_max_data_group_size(arg)
+    network = load_network(arg, '00')
+    last_layer_index = get_last_layer_index(network)
+    no_labels = get_no_labels(network)
+    last_layer_name = network.layers[0].name
+    tropical_function_folder = '_'.join([str(last_layer_index), last_layer_name])
 
 if arg.mode == 'compute_network_accuracies':
     training_accuracies = []
@@ -1023,17 +1034,7 @@ for epoch_number in epoch_numbers:
         else:
             slide_extracted_function_over_image()
     elif arg.mode == 'exp11_compare_linear_functions':
-        # For Debugging
-        # outputs = compare_linear_functions()
-        # For Running
-        with Manager() as manager:
-            outputs = manager.dict()
-            p = Process(target=compare_linear_functions, args=(outputs,))
-            p.start()
-            p.join()
-            # angles.append(outputs['new_angles'])
-            correlations.append(outputs['new_correlations'])
-            # distances.append(outputs['new_distances'])
+        correlations.append(compare_linear_functions())
     elif arg.mode == 'compute_network_accuracies':
         with Manager() as manager:
             outputs = manager.dict()
@@ -1054,7 +1055,6 @@ for epoch_number in epoch_numbers:
     elif arg.mode == 'save_linear_coefficients_to_mat':
         append_coefficient_statistics(arg, epoch_number)
 
-
 if arg.mode == 'compute_network_accuracies':
     training_accuracies = np.vstack(angles)
     test_accuracies = np.vstack(correlations)
@@ -1063,27 +1063,20 @@ if arg.mode == 'compute_network_accuracies':
     path = os.path.join(saving_directory_without_network_number, 'network_accuracies.csv')
     np.savetxt(path, network_accuracies, delimiter=",")
 
-
 if arg.mode == 'exp11_compare_linear_functions':
-    # angles = np.vstack(angles)
     correlations = np.vstack(correlations)
-    # distances = np.vstack(distances)
-    saving_directory = get_saving_directory(arg)
-    saving_directory_without_network_number = '/'.join(saving_directory.split('/')[0:-1])
+    directory = create_directory('/home/martin/Documents/MATLAB/tropex/Data/Exp11', 'LATEST_VERSION')
     if arg.data_set == 'MNIST':
-        name = arg.network_type_fine
+        architecture = arg.network_type_fine
     else:
-        name = arg.network_type_coarse
-    path = os.path.join(saving_directory_without_network_number, time.strftime("%Y-%m-%d-%H:%M:%S") + '_' +
-                        name + '_retrain_angles_correlations_distances_epoch.mat')
-    angles_name = name + '_angles'
-    correlations_name = name + '_correlations'
-    distances_name = name + '_distances'
-    Dict = eval("{'" + angles_name + "':0, '" + correlations_name + "':0, '" + distances_name + "':0}")
-    # Dict[angles_name] = angles
-    Dict[correlations_name] = correlations
-    # Dict[distances_name] = distances
-    savemat(path, Dict)
+        architecture = arg.network_type_coarse
+    if arg.network_number_2 == '1':
+        ending = '1.mat'
+    elif arg.network_number_2 == '3':
+        ending = '2.mat'
+    file_name = '_'.join([arg.data_set, architecture, arg.data_type, ending])
+    path = os.path.join(directory, file_name)
+    savemat(path, {'correlations': correlations})
 
 if arg.mode == 'save_linear_coefficients_to_mat':
     def reshape_to_image(array):
@@ -1092,6 +1085,7 @@ if arg.mode == 'save_linear_coefficients_to_mat':
         coefficients = array[:, 1:]
         coefficients = np.reshape(coefficients, [-1, 32, 32, 3])
         return coefficients
+
 
     matlab_directory = '/home/martin/Documents/MATLAB/Tropex/Data/Exp13'
     means = reshape_to_image(means)

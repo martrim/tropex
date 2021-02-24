@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+counter=$1
+exit_status=$2
+gpu_number=$3
+if [ $exit_status -eq 0 ]; then
+	echo "Command $counter: Success." >> summary${gpu_number}.out
+else
+	echo "Command $counter: Failure." >> summary${gpu_number}.out
+fi
+
