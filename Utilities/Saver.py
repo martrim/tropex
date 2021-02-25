@@ -41,13 +41,10 @@ def create_directory(*args):
 
 
 def get_saving_directory(arg):
-    if socket.gethostname() == 'dechter' or socket.gethostname() == 'maclaurin':
-        basic_path = '/home/martin/'
-    elif socket.gethostname() == 'lebesgue':
-        basic_path = '/media/hpetzka/C4BADFE8BADFD550/'
+    if socket.gethostname() == 'dechter':
+        basic_path = '/home/martin/tropex'
     else:
-        basic_path = ''
-    basic_path = os.path.join(basic_path, os.getcwd().split('/')[-1])
+        basic_path = '/home/martint/tropex'
     if arg.temperature_scaling:
         save_dir = create_directory(basic_path, 'Results', arg.network_type_coarse, arg.activation_function)
     else:
