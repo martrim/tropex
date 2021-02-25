@@ -3,3 +3,10 @@ Results
 run_script_dechter_gpu_0.sh
 run_script_dechter_gpu_1.sh
 run_script_maclaurin.sh
+Utilities/__pycache__/
+summary0.out
+summary1.out
+gpu0.out
+gpu1.out
+minsky0.out
+minsky1.out	
