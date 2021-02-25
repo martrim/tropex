@@ -746,11 +746,11 @@ def compare_linear_functions():
         return correlation
 
     arg.network_number = network_number
-    pos_terms_0, neg_terms_0 = load_tropical_function(arg, tropical_function_folder, no_labels, arg.data_type,
+    pos_terms_0, neg_terms_0 = load_tropical_function(arg, network, last_layer_index, no_labels, arg.data_type,
                                                       epoch_number, load_negative=True)
     terms_0 = np.vstack(pos_terms_0) - np.vstack(neg_terms_0)
     arg.network_number = network_number_2
-    pos_terms_1, neg_terms_1 = load_tropical_function(arg, tropical_function_folder, no_labels, arg.data_type,
+    pos_terms_1, neg_terms_1 = load_tropical_function(arg, network, last_layer_index, no_labels, arg.data_type,
                                                       epoch_number, load_negative=True)
     terms_1 = np.vstack(pos_terms_1) - np.vstack(neg_terms_1)
     # terms_0 = terms_0[0:no_data_points]
@@ -993,8 +993,6 @@ if arg.mode == 'exp11_compare_linear_functions':
     network = load_network(arg, '00')
     last_layer_index = get_last_layer_index(network)
     no_labels = get_no_labels(network)
-    last_layer_name = network.layers[0].name
-    tropical_function_folder = '_'.join([str(last_layer_index), last_layer_name])
 
 if arg.mode == 'compute_network_accuracies':
     training_accuracies = []

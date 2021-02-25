@@ -21,30 +21,20 @@ if arg.network_type_coarse == 'ResNet':
 # Set available GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
 
+
 def delete_old_files(batch_idx):
-    save_dir = get_tropical_function_directory(arg, network, last_layer_index, arg.data_type, epoch_number)
+    folder_name = '_'.join([str(0), network.layers[0].name])
+    save_dir = get_tropical_function_directory(arg, folder_name, arg.data_type, epoch_number)
     all_file_names = os.listdir(save_dir)
     deletion_file_names = list(filter(lambda x: '_label_' + str(batch_idx) in x, all_file_names))
     for file_name in deletion_file_names:
         os.remove(os.path.join(save_dir, file_name))
 
 
-def merge_more_terms(dim_number, layer_idx, sign):
-    save_dir = get_tropical_function_directory(arg, network, layer_idx, arg.data_type, epoch_number)
-    terms = [None] * no_labels
-    for data_group_number in range(no_labels):
-        batch_idx = 10 * dim_number + data_group_number
-        file_name = sign + '_label_' + str(batch_idx) + '.npy'
-        terms[data_group_number] = np.load(save_dir + file_name)
-        os.remove(save_dir + file_name)
-    terms = np.vstack(terms)
-    file_name = sign + '_label_' + str(dim_number) + '.npy'
-    np.save(save_dir + file_name, terms)
-
-
 def transform_batch(batch_idx, subgroup_number, sign):
-    def save(batch_idx, layer_idx, B, bias, subgroup_number):
-        save_dir = get_tropical_function_directory(arg, network, layer_idx, arg.data_type, epoch_number)
+    def save(batch_idx, layer_idx, layer, B, bias, subgroup_number):
+        folder_name = '_'.join([str(layer_idx), layer.name])
+        save_dir = get_tropical_function_directory(arg, folder_name, arg.data_type, epoch_number)
         file_name_ending = get_tropical_filename_ending(batch_idx, subgroup_number)
 
         B = flatten_and_stack(B, bias)
@@ -70,18 +60,18 @@ def transform_batch(batch_idx, subgroup_number, sign):
             B = B * scale
             return B, bias_merged
 
-        gamma, beta, mean, var = current_layer.get_weights()
+        gamma, beta, mean, var = layer.get_weights()
         gamma = gamma[np.newaxis, np.newaxis, np.newaxis, :]
         beta = beta[np.newaxis, np.newaxis, np.newaxis, :]
         mean = mean[np.newaxis, np.newaxis, np.newaxis, :]
         var = var[np.newaxis, np.newaxis, np.newaxis, :]
-        eps = current_layer.epsilon
+        eps = layer.epsilon
         # data_after_batchnorm = ((data_before_batchnorm - mean)/np.sqrt(var+epsilon))*gamma + beta
         scale = gamma / np.sqrt(var + eps)
         translation = np.squeeze(-mean * scale + beta)
         B_max = B_max * np.abs(scale)
 
-        _, input_height, input_width, input_channels = current_layer.input_shape
+        _, input_height, input_width, input_channels = layer.input_shape
         new_bias = np.tile(translation, input_height * input_width)
 
         B, bias = merge_layers(scale, new_bias, B, bias)
@@ -109,22 +99,22 @@ def transform_batch(batch_idx, subgroup_number, sign):
             bias_new = np.dot(B.reshape([B.shape[0], -1]), bias_repeated[:, np.newaxis]) + bias
             return B_new, bias_new
 
-        output_shape = current_layer.output_shape[1:]
+        output_shape = layer.output_shape[1:]
         output_height, output_width, output_channels = output_shape
-        filt, layer_bias = current_layer.get_weights()
+        filt, layer_bias = layer.get_weights()
         filt = filt.astype('float64')
 
         filt_neg = (-filt) * (filt < 0)
         filt_pos = filt * (filt > 0)
-        new_output_shape = (1,) + current_layer.input_shape[1:]
-        strides = (1,) + current_layer.strides + (1,)
+        new_output_shape = (1,) + layer.input_shape[1:]
+        strides = (1,) + layer.strides + (1,)
         K = tf.nn.conv2d_transpose(B_max, filt_neg, output_shape=new_output_shape,
                                    strides=strides, padding='SAME')
         B_max = tf.nn.conv2d_transpose(B_max, filt_pos, output_shape=new_output_shape,
                                        strides=strides, padding='SAME')
         B_max += K
 
-        B, bias = merge_layers(current_layer, B, bias)
+        B, bias = merge_layers(layer, B, bias)
         B += K
 
         return B, bias, B_max
@@ -136,7 +126,7 @@ def transform_batch(batch_idx, subgroup_number, sign):
             B += K
             return B, bias
 
-        W, layer_bias = current_layer.get_weights()
+        W, layer_bias = layer.get_weights()
         W = W.astype('float64')
         W = W.transpose()
         layer_bias = layer_bias.astype('float64')
@@ -184,24 +174,23 @@ def transform_batch(batch_idx, subgroup_number, sign):
         B_max = B_max.reshape([-1, h, w, c])
 
     if arg.save_intermediate:
-        save(batch_idx, 0, B, bias, subgroup_number)
+        save(batch_idx, len(network.layers)-1, network.layers[-1], B, bias, subgroup_number)
 
     counter = 0
     input_names = []
-    for layer_idx in range(1, last_layer_index + 1):
-        current_layer = network.layers[-(layer_idx + 2)]
-        layer_type = get_layer_type(current_layer)
+    for layer_idx, layer in reversed(list(enumerate(network.layers[0:-2]))):
+        layer_type = get_layer_type(layer)
         if len(input_names) > 1:
-            if input_names[0] == current_layer.name:
+            if input_names[0] == layer.name:
                 B, bias, B_max = B_0, bias_0, B_max_0
-            elif input_names[1] == current_layer.name:
+            elif input_names[1] == layer.name:
                 B, bias, B_max = B_1, bias_1, B_max_1
         if layer_type == 'add':
-            inputs = current_layer.input
+            inputs = layer.input
             input_names = [input.name.split('/')[0] for input in inputs]
             B_0, bias_0, B_max_0, B_1, bias_1, B_max_1 = copy(B, bias, B_max)
         elif layer_type == 'average':
-            B, B_max = avpool(B, B_max, current_layer.pool_size)
+            B, B_max = avpool(B, B_max, layer.pool_size)
         elif layer_type == 'batch':
             B, bias, B_max = batch(B, bias, B_max)
         elif layer_type == 'conv2d':
@@ -212,35 +201,35 @@ def transform_batch(batch_idx, subgroup_number, sign):
         elif layer_type == 'dropout':
             pass
         elif layer_type == 'flatten':
-            B = B.reshape((-1,) + current_layer.input_shape[1:])
-            B_max = B_max.reshape((-1,) + current_layer.input_shape[1:])
+            B = B.reshape((-1,) + layer.input_shape[1:])
+            B_max = B_max.reshape((-1,) + layer.input_shape[1:])
         elif layer_type == 'leaky':
-            B = leaky(B, current_layer.alpha)
+            B = leaky(B, layer.alpha)
             counter += 1
         elif layer_type == 'max':
-            B, B_max = maxpool(B, B_max, current_layer.input_shape)
+            B, B_max = maxpool(B, B_max, layer.input_shape)
             counter += 1
         elif layer_type == 're' or layer_type == 'activation':
             B = relu(B)
             counter += 1
 
         if len(input_names) > 1:
-            if input_names[0] == current_layer.name:
+            if input_names[0] == layer.name:
                 B_0, bias_0, B_max_0 = B, bias, B_max
-                input_names[0] = current_layer.input.name.split('/')[0]
-            elif input_names[1] == current_layer.name:
+                input_names[0] = layer.input.name.split('/')[0]
+            elif input_names[1] == layer.name:
                 B_1, bias_1, B_max_1 = B, bias, B_max
-                input_names[1] = current_layer.input.name.split('/')[0]
+                input_names[1] = layer.input.name.split('/')[0]
 
             if input_names[0] == input_names[1]:
                 B, bias, B_max = add(B_0, bias_0, B_max_0, B_1, bias_1, B_max_1)
                 input_names = []
 
         if arg.save_intermediate and layer_type in saving_types:
-            save(batch_idx, layer_idx, B, bias, subgroup_number)
+            save(batch_idx, layer_idx, layer, B, bias, subgroup_number)
         logger.info('Done with merge ' + str(layer_idx) + ' of ' + str(last_layer_index))
 
-    save(batch_idx, layer_idx, B, bias, subgroup_number)
+    save(batch_idx, layer_idx, layer, B, bias, subgroup_number)
     logger.info('Done with batch ' + str(batch_idx + 1) + ' of ' + str(no_batches))
 
 
@@ -252,6 +241,7 @@ for epoch_number in epoch_numbers:
     print('Epoch number: ' + str(epoch_number))
     logger.info('Epoch number: ' + str(epoch_number))
     network = load_network(arg, epoch_number)
+    # subtract 2 because we skip the final activation and indexing starts from 0 and not from 1
     last_layer_index = len(network.layers) - 2
     no_labels = network.layers[-1].output_shape[1]
     grouped_data = get_grouped_data(arg, network, max_data_group_size)

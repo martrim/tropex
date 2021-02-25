@@ -204,8 +204,8 @@ def get_no_subgroups(list_of_file_names, data_group_number):
     return len(list(filter(lambda file_name: 'pos_label_' + str(data_group_number) in file_name, list_of_file_names)))
 
 
-def load_tropical_function(arg, tropical_function_folder, no_labels, data_type, epoch_number, load_negative=False, stacked=False):
-    save_dir = get_tropical_function_directory(arg, tropical_function_folder, data_type, epoch_number)
+def load_tropical_function(arg, network, layer_idx, no_labels, data_type, epoch_number, load_negative=False, stacked=False):
+    save_dir = get_tropical_function_directory(arg, network, layer_idx, data_type, epoch_number)
     list_of_file_names = os.listdir(save_dir)
     pos_terms = [None] * no_labels
     for data_group_number in range(no_labels):
@@ -379,7 +379,7 @@ def get_no_data_subgroups_per_data_group(activation_patterns):
     return list(map(lambda x: len(x), activation_patterns))
 
 
-def get_tropical_function_directory(arg, layer_name, data_type, epoch_number):
+def get_tropical_function_directory(arg, folder_name, data_type, epoch_number):
     save_dir = get_saving_directory(arg)
     func_dir = create_directory(save_dir, data_type.capitalize())
     if arg.epochs == 'all' or arg.epochs == 'special':
@@ -388,7 +388,7 @@ def get_tropical_function_directory(arg, layer_name, data_type, epoch_number):
         all_dimensions_string = '_all_dimensions'
     else:
         all_dimensions_string = ''
-    func_dir = create_directory(func_dir, layer_name + all_dimensions_string)
+    func_dir = create_directory(func_dir, folder_name + all_dimensions_string)
     return func_dir
 
 

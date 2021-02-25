@@ -49,9 +49,9 @@ def get_saving_directory(arg):
         basic_path = ''
     basic_path = os.path.join(basic_path, os.getcwd().split('/')[-1])
     if arg.temperature_scaling:
-        save_dir = create_directory(basic_path, 'DEBUGGING_Results', arg.network_type_coarse, arg.activation_function)
+        save_dir = create_directory(basic_path, 'Results', arg.network_type_coarse, arg.activation_function)
     else:
-        save_dir = create_directory(basic_path, 'DEBUGGING_Results', arg.data_set, arg.network_type_coarse, arg.network_type_fine,
+        save_dir = create_directory(basic_path, 'Results', arg.data_set, arg.network_type_coarse, arg.network_type_fine,
                                 arg.network_number)
     return save_dir
 
