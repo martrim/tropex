@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+rm -rf summary0.out
+rm -rf summary1.out
+rm -rf gpu0.out
+rm -rf gpu1.out
+rm -rf minsky0.out
+rm -rf minsky1.out
+rm -rf log.txt
+

@@ -205,7 +205,7 @@ def get_no_subgroups(list_of_file_names, data_group_number):
 
 
 def get_folder_name(network, index):
-    return '_'.join([str(index), network.layers[index]])
+    return '_'.join([str(index), network.layers[index].name])
 
 
 def load_tropical_function(arg, folder_name, no_labels, data_type, epoch_number, load_negative=False, stacked=False):

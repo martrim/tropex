@@ -22,15 +22,6 @@ if arg.network_type_coarse == 'ResNet':
 os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
 
 
-def delete_old_files(batch_idx):
-    folder_name = get_folder_name(network, index=0)
-    save_dir = get_tropical_function_directory(arg, folder_name, arg.data_type, epoch_number)
-    all_file_names = os.listdir(save_dir)
-    deletion_file_names = list(filter(lambda x: '_label_' + str(batch_idx) in x, all_file_names))
-    for file_name in deletion_file_names:
-        os.remove(os.path.join(save_dir, file_name))
-
-
 def transform_batch(batch_idx, subgroup_number, sign):
     def save(batch_idx, layer_idx, B, bias, subgroup_number):
         folder_name = get_folder_name(network, layer_idx)
@@ -174,7 +165,7 @@ def transform_batch(batch_idx, subgroup_number, sign):
         B_max = B_max.reshape([-1, h, w, c])
 
     if arg.save_intermediate:
-        save(batch_idx, len(network.layers)-1, network.layers[-1], B, bias, subgroup_number)
+        save(batch_idx, len(network.layers)-1, B, bias, subgroup_number)
 
     counter = 0
     input_names = []
@@ -226,10 +217,10 @@ def transform_batch(batch_idx, subgroup_number, sign):
                 input_names = []
 
         if arg.save_intermediate and layer_type in saving_types:
-            save(batch_idx, layer_idx, layer, B, bias, subgroup_number)
+            save(batch_idx, layer_idx, B, bias, subgroup_number)
         logger.info('Done with merge ' + str(layer_idx) + ' of ' + str(last_layer_index))
 
-    save(batch_idx, layer_idx, layer, B, bias, subgroup_number)
+    save(batch_idx, layer_idx, B, bias, subgroup_number)
     logger.info('Done with batch ' + str(batch_idx + 1) + ' of ' + str(no_batches))
 
 
@@ -288,7 +279,6 @@ for epoch_number in epoch_numbers:
             data_group_number = batch_idx
 
         print('data group: ' + str(data_group_number))
-        delete_old_files(batch_idx)
         if no_data_points_per_label[data_group_number] == 0:
             continue
         else:
