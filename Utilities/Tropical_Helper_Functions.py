@@ -204,8 +204,12 @@ def get_no_subgroups(list_of_file_names, data_group_number):
     return len(list(filter(lambda file_name: 'pos_label_' + str(data_group_number) in file_name, list_of_file_names)))
 
 
-def load_tropical_function(arg, network, layer_idx, no_labels, data_type, epoch_number, load_negative=False, stacked=False):
-    save_dir = get_tropical_function_directory(arg, network, layer_idx, data_type, epoch_number)
+def get_folder_name(network, index):
+    return '_'.join([str(index), network.layers[index]])
+
+
+def load_tropical_function(arg, folder_name, no_labels, data_type, epoch_number, load_negative=False, stacked=False):
+    save_dir = get_tropical_function_directory(arg, folder_name, data_type, epoch_number)
     list_of_file_names = os.listdir(save_dir)
     pos_terms = [None] * no_labels
     for data_group_number in range(no_labels):

@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from Utilities.Tropical_Helper_Functions import flatten_and_stack, get_no_data_subgroups_per_data_group, \
     get_tropical_function_directory, get_activation_patterns, get_no_data_points_per_label, get_layer_type, get_epoch_numbers, \
-    get_tropical_filename_ending, get_max_data_group_size, get_grouped_data
+    get_tropical_filename_ending, get_max_data_group_size, get_grouped_data, get_folder_name
 from Utilities.Custom_Settings import apply_resnet_settings
 from Utilities.Logger import *
 from Utilities.Network_Loader import load_network
@@ -23,7 +23,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
 
 
 def delete_old_files(batch_idx):
-    folder_name = '_'.join([str(0), network.layers[0].name])
+    folder_name = get_folder_name(network, index=0)
     save_dir = get_tropical_function_directory(arg, folder_name, arg.data_type, epoch_number)
     all_file_names = os.listdir(save_dir)
     deletion_file_names = list(filter(lambda x: '_label_' + str(batch_idx) in x, all_file_names))
@@ -32,8 +32,8 @@ def delete_old_files(batch_idx):
 
 
 def transform_batch(batch_idx, subgroup_number, sign):
-    def save(batch_idx, layer_idx, layer, B, bias, subgroup_number):
-        folder_name = '_'.join([str(layer_idx), layer.name])
+    def save(batch_idx, layer_idx, B, bias, subgroup_number):
+        folder_name = get_folder_name(network, layer_idx)
         save_dir = get_tropical_function_directory(arg, folder_name, arg.data_type, epoch_number)
         file_name_ending = get_tropical_filename_ending(batch_idx, subgroup_number)
 

@@ -6,11 +6,11 @@ from scipy.io import savemat
 from scipy.spatial.distance import cdist
 from Utilities.Custom_Settings import apply_resnet_settings
 from Utilities.Tropical_Helper_Functions import evaluate_tropical_function, get_current_data, get_grouped_data, \
-    get_last_layer_index, get_no_labels, get_tropical_test_labels, load_tropical_function, shift_array, \
+    get_no_labels, get_tropical_test_labels, load_tropical_function, shift_array, \
     get_tropical_function_directory, evaluate_batch_of_tropical_function, flatten_and_stack, \
     load_tropical_function_batch, \
     get_epoch_numbers, compute_1_1_euclidean_distances, compute_1_1_angles, get_associated_training_points, \
-    get_max_data_group_size, reorder_terms, \
+    get_max_data_group_size, get_folder_name, \
     get_activation_patterns, stack_list_with_subgroups, group_points, partition_according_to_correct_indices
 from Utilities.Data_Loader import load_data
 from Utilities.Logger import *
@@ -746,11 +746,11 @@ def compare_linear_functions():
         return correlation
 
     arg.network_number = network_number
-    pos_terms_0, neg_terms_0 = load_tropical_function(arg, network, last_layer_index, no_labels, arg.data_type,
+    pos_terms_0, neg_terms_0 = load_tropical_function(arg, folder_name, no_labels, arg.data_type,
                                                       epoch_number, load_negative=True)
     terms_0 = np.vstack(pos_terms_0) - np.vstack(neg_terms_0)
     arg.network_number = network_number_2
-    pos_terms_1, neg_terms_1 = load_tropical_function(arg, network, last_layer_index, no_labels, arg.data_type,
+    pos_terms_1, neg_terms_1 = load_tropical_function(arg, folder_name, no_labels, arg.data_type,
                                                       epoch_number, load_negative=True)
     terms_1 = np.vstack(pos_terms_1) - np.vstack(neg_terms_1)
     # terms_0 = terms_0[0:no_data_points]
@@ -991,7 +991,7 @@ if arg.mode == 'exp11_compare_linear_functions':
     network_number_2 = arg.network_number_2
     max_data_group_size = get_max_data_group_size(arg)
     network = load_network(arg, '00')
-    last_layer_index = get_last_layer_index(network)
+    folder_name = get_folder_name(network, index=0)
     no_labels = get_no_labels(network)
 
 if arg.mode == 'compute_network_accuracies':
@@ -1003,7 +1003,6 @@ for epoch_number in epoch_numbers:
     print('Epoch number: ' + str(epoch_number))
     if not arg.mode == 'exp11_compare_linear_functions':
         network = load_network(arg, epoch_number)
-        last_layer_index = get_last_layer_index(network)
         no_labels = get_no_labels(network)
     if arg.mode == 'exp1_count':
         no_linear_regions = count_no_linear_regions()
