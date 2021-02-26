@@ -1063,7 +1063,7 @@ if arg.mode == 'compute_network_accuracies':
 
 if arg.mode == 'exp11_compare_linear_functions':
     correlations = np.vstack(correlations)
-    directory = create_directory('/home/martin/Documents/MATLAB/tropex/Data/Exp11', 'LATEST_VERSION')
+    directory = os.path.join('/home', getpass.getuser(), 'Documents/MATLAB/tropex/Data/Exp11', 'LATEST_VERSION')
     if arg.data_set == 'MNIST':
         architecture = arg.network_type_fine
     else:
