@@ -68,7 +68,7 @@ data_set="--data_set CIFAR10"
 network_type_coarse="--network_type_coarse VGG"
 network_type_fine="--network_type_fine Standard"
 architecture="$data_set $network_type_coarse $network_type_fine"
-counter=$((counter+1))
+catcounter=$((counter+1))
 bash print_command $counter
 python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '2'
 exit_status=$?

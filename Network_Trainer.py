@@ -4,7 +4,7 @@ from tensorflow import keras
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from Utilities.Callbacks import get_callbacks, get_scheduler
-from Utilities.Custom_Settings import apply_resnet_settings
+from Utilities.Custom_Settings import apply_resnet_settings, configure_gpu
 from Utilities.Logger import print_start, print_end
 from Utilities.Networks import define_model
 from Utilities.Data_Loader import load_data
@@ -18,8 +18,8 @@ arg = parse_arguments()
 if arg.network_type_coarse == 'ResNet':
     arg = apply_resnet_settings(arg)
 
-# Set available GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
+# Configure the GPU for Tensorflow
+configure_gpu(arg)
 
 # Show training bar only if run in the IDE
 if "PYCHARM_HOSTED" in os.environ:

@@ -3,7 +3,7 @@ import tensorflow as tf
 from Utilities.Tropical_Helper_Functions import flatten_and_stack, get_no_data_subgroups_per_data_group, \
     get_tropical_function_directory, get_activation_patterns, get_no_data_points_per_label, get_layer_type, get_epoch_numbers, \
     get_tropical_filename_ending, get_max_data_group_size, get_grouped_data, get_folder_name
-from Utilities.Custom_Settings import apply_resnet_settings
+from Utilities.Custom_Settings import apply_resnet_settings, configure_gpu
 from Utilities.Logger import *
 from Utilities.Network_Loader import load_network
 from Utilities.Parser import parse_arguments
@@ -18,8 +18,8 @@ arg = parse_arguments()
 if arg.network_type_coarse == 'ResNet':
     arg = apply_resnet_settings(arg)
 
-# Set available GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
+# Configure the GPU for Tensorflow
+configure_gpu(arg)
 
 
 def transform_batch(batch_idx, subgroup_number, sign):

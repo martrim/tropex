@@ -1,10 +1,11 @@
+import getpass
 from multiprocessing import Manager, Process
 import pickle
 import numpy as np
 from functools import reduce
 from scipy.io import savemat
 from scipy.spatial.distance import cdist
-from Utilities.Custom_Settings import apply_resnet_settings
+from Utilities.Custom_Settings import apply_resnet_settings, configure_gpu
 from Utilities.Tropical_Helper_Functions import evaluate_tropical_function, get_current_data, get_grouped_data, \
     get_no_labels, get_tropical_test_labels, load_tropical_function, shift_array, \
     get_tropical_function_directory, evaluate_batch_of_tropical_function, flatten_and_stack, \
@@ -25,8 +26,8 @@ arg = parse_arguments()
 if arg.network_type_coarse == 'ResNet':
     arg = apply_resnet_settings(arg)
 
-# Set available GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
+# Configure the GPU for Tensorflow
+configure_gpu(arg)
 
 
 # EXPERIMENTS
@@ -1084,7 +1085,7 @@ if arg.mode == 'save_linear_coefficients_to_mat':
         return coefficients
 
 
-    matlab_directory = '/home/martin/Documents/MATLAB/Tropex/Data/Exp13'
+    matlab_directory = os.path.join('home', getpass.getuser(), 'Documents/MATLAB/Tropex/Data/Exp13')
     means = reshape_to_image(means)
     medians = reshape_to_image(medians)
     stds = reshape_to_image(stds)

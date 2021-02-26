@@ -14,54 +14,6 @@ standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_sch
 
 
 
-data_set="--data_set MNIST"
-network_type_coarse="--network_type_coarse MNIST"
-network_type_fine="--network_type_fine FCN4"
-architecture="$data_set $network_type_coarse $network_type_fine"
-counter=$((counter+1))
-bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-
-
-
-
-data_set="--data_set CIFAR10"
-network_type_coarse="--network_type_coarse FCN"
-network_type_fine="--network_type_fine 8_Layers"
-architecture="$data_set $network_type_coarse $network_type_fine"
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '1'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-
 
 
 

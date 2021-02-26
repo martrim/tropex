@@ -1,4 +1,5 @@
 import csv
+import getpass
 import numpy as np
 import os
 import pickle
@@ -41,10 +42,7 @@ def create_directory(*args):
 
 
 def get_saving_directory(arg):
-    if socket.gethostname() == 'dechter':
-        basic_path = '/home/martin/tropex'
-    else:
-        basic_path = '/home/martint/tropex'
+    basic_path = os.path.join('home', getpass.getuser(), 'tropex')
     if arg.temperature_scaling:
         save_dir = create_directory(basic_path, 'Results', arg.network_type_coarse, arg.activation_function)
     else:

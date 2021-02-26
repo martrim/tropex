@@ -3,6 +3,7 @@ import numpy as np
 import os
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Model
+from Utilities.Custom_Settings import configure_gpu
 from Utilities.Data_Loader import load_data
 from Utilities.Saver import create_directory, get_saving_directory
 
@@ -342,7 +343,10 @@ def get_activation_patterns(arg, network, data_group=None):
         elif layer_type == 'max':
             outputs.append(layers_without_softmax[layer_idx - 1].output)
             outputs.append(layer.output)
-    os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
+
+    # Configure the GPU for Tensorflow
+    configure_gpu(arg)
+
     predictor = K.function([input], outputs)
     predicted_data = predictor([data_group])
     activation_patterns = turn_data_into_activation_patterns(predicted_data)

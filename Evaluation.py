@@ -1,10 +1,9 @@
 import numpy as np
-import os
 from Utilities.Tropical_Helper_Functions import compute_maximal_difference, evaluate_tropical_function, get_current_data,\
     get_last_layer_index, get_tropical_function_directory, get_tropical_test_labels,\
     get_grouped_data, load_tropical_function, get_no_batches, get_no_labels, get_epoch_numbers, get_max_data_group_size,\
     evaluate_network_on_subgrouped_data
-from Utilities.Custom_Settings import apply_resnet_settings
+from Utilities.Custom_Settings import apply_resnet_settings, configure_gpu
 from Utilities.Logger import *
 from Utilities.Network_Loader import load_network
 from Utilities.Parser import parse_arguments
@@ -20,8 +19,8 @@ arg = parse_arguments()
 if arg.network_type_coarse == 'ResNet':
     arg = apply_resnet_settings(arg)
 
-# Set available GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
+# Configure the GPU for Tensorflow
+configure_gpu(arg)
 
 
 # COMPUTATION OF ACCURACY OF TROPICAL FUNCTION
