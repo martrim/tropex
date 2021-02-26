@@ -42,7 +42,7 @@ def create_directory(*args):
 
 
 def get_saving_directory(arg):
-    basic_path = os.path.join('home', getpass.getuser(), 'tropex')
+    basic_path = os.path.join('/home', getpass.getuser(), 'tropex')
     if arg.temperature_scaling:
         save_dir = create_directory(basic_path, 'Results', arg.network_type_coarse, arg.activation_function)
     else:

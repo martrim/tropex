@@ -1085,7 +1085,7 @@ if arg.mode == 'save_linear_coefficients_to_mat':
         return coefficients
 
 
-    matlab_directory = os.path.join('home', getpass.getuser(), 'Documents/MATLAB/Tropex/Data/Exp13')
+    matlab_directory = os.path.join('/home', getpass.getuser(), 'Documents/MATLAB/Tropex/Data/Exp13')
     means = reshape_to_image(means)
     medians = reshape_to_image(medians)
     stds = reshape_to_image(stds)
