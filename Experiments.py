@@ -974,7 +974,7 @@ def compute_network_accuracies(network, x_train, y_train, x_test, y_test, output
 logger = get_logger(arg)
 epoch_numbers = get_epoch_numbers(arg)
 no_data_points = 10
-epoch_numbers = ['00', '01', '02']
+# epoch_numbers = ['00', '01', '02']
 
 if arg.mode == 'save_linear_coefficients_to_mat':
     means = []
