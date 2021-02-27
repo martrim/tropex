@@ -6,7 +6,7 @@ def parse_arguments(print_args=True):
     parser = argparse.ArgumentParser(description='Parsing Arguments.')
 
     # Mandatory Arguments
-    parser.add_argument('--gpu', default='0', type=str, help='gpu number (default: 0)')
+    parser.add_argument('--gpu', default='1', type=str, help='gpu number (default: 0)')
     parser.add_argument('--epochs', default='all', choices=['none', 'all', 'special'],
                         help='specify which epochs are used')
     parser.add_argument('--data_set', default='MNIST', choices=['MNIST', 'CIFAR10', 'Fashion MNIST'],
@@ -15,7 +15,7 @@ def parse_arguments(print_args=True):
                         help="use training or test data")
     parser.add_argument('--network_type_coarse', default='MNIST', choices=['-', 'AllCNN', 'FCN', 'ResNet', 'VGG', 'MNIST'],
                         help='type of architecture used for training (default: VGG)')
-    parser.add_argument('--network_type_fine', default='Convolutional',
+    parser.add_argument('--network_type_fine', default='FCN4',
                         choices=['Standard', 'Narrow', 'Narrow_with_strides', '8_Layers', 'v1', 'Convolutional', 'FCN4', 'FCN6', 'Wide'],
                         help='name of network structure used for training (default: Standard)')
     parser.add_argument('--early_stopping', dest='early_stopping', action='store_true',
@@ -26,9 +26,9 @@ def parse_arguments(print_args=True):
                         help='specify if weight decay is used (only for debugging)')
 
     # String arguments
-    parser.add_argument('--network_number', default='0', choices=['0', '1', '2', '3', '4'],
+    parser.add_argument('--network_number', default='2', choices=['0', '1', '2', '3', '4'],
                         help='number of saved network; the program loops through all numbers if "all" is selected')
-    parser.add_argument('--network_number_2', default='1', choices=['0', '1', '2', '3', '4'],
+    parser.add_argument('--network_number_2', default='3', choices=['0', '1', '2', '3', '4'],
                         help='number of saved network; the program loops through all numbers if "all" is selected')
     parser.add_argument('--activation_function', default='relu', choices=['leaky_relu', 'relu', 'split_relu'],
                         help='activation functions before the last layer (default: relu)')
