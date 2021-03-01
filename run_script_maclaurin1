@@ -11,9 +11,9 @@ weight_decay="--weight_decay"
 standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_schedule $weight_decay"
 
 
-data_set="--data_set MNIST"
-network_type_coarse="--network_type_coarse MNIST"
-network_type_fine="--network_type_fine Convolutional"
+data_set="--data_set CIFAR10"
+network_type_coarse="--network_type_coarse VGG"
+network_type_fine="--network_type_fine Standard"
 architecture="$data_set $network_type_coarse $network_type_fine"
 # NETWORK TRAINER
 counter=$((counter+1))

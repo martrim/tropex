@@ -9,3 +9,6 @@ for t in ${!exit_statuses[@]};
 	fi
 done
 
+PARENT_COMMAND=$(ps -o command= -p "$PPID" | awk '{print $2}')
+notify-send -i face-cool -u critical "Script finished." $PARENT_COMMAND
+

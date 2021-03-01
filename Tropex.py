@@ -236,6 +236,9 @@ for epoch_number in epoch_numbers:
     last_layer_index = len(network.layers) - 2
     no_labels = network.layers[-1].output_shape[1]
     grouped_data = get_grouped_data(arg, network, max_data_group_size)
+    # CHANGED!!!!!!!!!!!!!!!!
+    no_labels = 1
+    grouped_data = [[grouped_data[0][0][0:100]]]
     no_data_points_per_label = get_no_data_points_per_label(grouped_data)
     no_data_subgroups_per_data_group = get_no_data_subgroups_per_data_group(grouped_data)
     if arg.extract_all_dimensions:
@@ -269,7 +272,7 @@ for epoch_number in epoch_numbers:
 
     A_minus = np.expand_dims(np.sum(W_minus, axis=0), axis=0)
     A_plus = W_plus + A_minus - W_minus
-
+    # CHANGED!!!!!!!!!!!!!!!!
     for batch_idx in range(no_batches):
         if arg.extract_all_dimensions:
             dim_number = batch_idx // no_labels

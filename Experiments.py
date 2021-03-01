@@ -754,8 +754,8 @@ def compare_linear_functions():
     pos_terms_1, neg_terms_1 = load_tropical_function(arg, folder_name, no_labels, arg.data_type,
                                                       epoch_number, load_negative=True)
     terms_1 = np.vstack(pos_terms_1) - np.vstack(neg_terms_1)
-    # terms_0 = terms_0[0:no_data_points]
-    # terms_1 = terms_1[0:no_data_points]
+    terms_0 = terms_0[arg.data_points_lower:arg.data_points_upper]
+    terms_1 = terms_1[arg.data_points_lower:arg.data_points_upper]
     return correlation(terms_0, terms_1)
 
 
@@ -973,7 +973,6 @@ def compute_network_accuracies(network, x_train, y_train, x_test, y_test, output
 
 logger = get_logger(arg)
 epoch_numbers = get_epoch_numbers(arg)
-no_data_points = 10
 # epoch_numbers = ['00', '01', '02']
 
 if arg.mode == 'save_linear_coefficients_to_mat':
@@ -1063,7 +1062,8 @@ if arg.mode == 'compute_network_accuracies':
 
 if arg.mode == 'exp11_compare_linear_functions':
     correlations = np.vstack(correlations)
-    directory = create_directory('/home', getpass.getuser(), 'Documents/MATLAB/tropex/Data/Exp11', 'LATEST_VERSION')
+    no_data_points = arg.data_points_upper - arg.data_points_lower
+    directory = create_directory('/home', getpass.getuser(), 'Documents/MATLAB/tropex/Data/Exp11', 'DEBUGGING', str(no_data_points))
     if arg.data_set == 'MNIST':
         architecture = arg.network_type_fine
     else:
