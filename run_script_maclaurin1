@@ -15,93 +15,6 @@ data_set="--data_set CIFAR10"
 network_type_coarse="--network_type_coarse VGG"
 network_type_fine="--network_type_fine Standard"
 architecture="$data_set $network_type_coarse $network_type_fine"
-# NETWORK TRAINER
-counter=$((counter+1))
-bash print_command $counter
-python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '0'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '1'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '2'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '3'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-# TROPEX - training
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '0'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '1'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '2'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '3'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-# TROPEX - test
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '0'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '1'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '2'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
-counter=$((counter+1))
-bash print_command $counter
-python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '3'
-exit_status=$?
-bash print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
 # EXPERIMENTS - 100
 counter=$((counter+1))
 bash print_command $counter
@@ -112,14 +25,14 @@ exit_statuses+=("$exit_status")
 
 counter=$((counter+1))
 bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '100' --network_number_2 '1'
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0' --data_points_upper '100' --network_number_2 '1'
 exit_status=$?
 bash print_summary $counter $exit_status $gpu_number
 exit_statuses+=("$exit_status")
 
 counter=$((counter+1))
 bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '100' --network_number_2 '3'
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '2' --data_points_upper '100' --network_number_2 '3'
 exit_status=$?
 bash print_summary $counter $exit_status $gpu_number
 exit_statuses+=("$exit_status")
@@ -141,14 +54,14 @@ exit_statuses+=("$exit_status")
 
 counter=$((counter+1))
 bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '10' --network_number_2 '1'
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0' --data_points_upper '10' --network_number_2 '1'
 exit_status=$?
 bash print_summary $counter $exit_status $gpu_number
 exit_statuses+=("$exit_status")
 
 counter=$((counter+1))
 bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '10' --network_number_2 '3'
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '2' --data_points_upper '10' --network_number_2 '3'
 exit_status=$?
 bash print_summary $counter $exit_status $gpu_number
 exit_statuses+=("$exit_status")
@@ -170,14 +83,14 @@ exit_statuses+=("$exit_status")
 
 counter=$((counter+1))
 bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '2' --network_number_2 '1'
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0' --data_points_upper '2' --network_number_2 '1'
 exit_status=$?
 bash print_summary $counter $exit_status $gpu_number
 exit_statuses+=("$exit_status")
 
 counter=$((counter+1))
 bash print_command $counter
-python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '2' --network_number_2 '3'
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '2' --data_points_upper '2' --network_number_2 '3'
 exit_status=$?
 bash print_summary $counter $exit_status $gpu_number
 exit_statuses+=("$exit_status")
