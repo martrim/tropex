@@ -56,8 +56,9 @@ def evaluate_x_train(arg, layer_idx):
         current_layer_name = function_path.split('/')[-2]
         logger.info('After merging with layer ' + current_layer_name + ':')
         current_data = get_current_data(network, grouped_data, layer_idx)
-        pos_terms, neg_terms , true_labels, network_labels = load_tropical_function(arg, folder_name, 'training', epoch_number, load_negative=True)
-        pos_result, neg_result = evaluate_tropical_function(current_data, network_labels, pos_terms, neg_terms)
+        pos_terms, true_labels, network_labels = load_tropical_function(arg, folder_name, arg.data_type, epoch_number, sign='pos')
+        terms, _, _ = load_tropical_function(arg, folder_name, arg.data_type, epoch_number, sign='neg')
+        pos_result, neg_result = evaluate_tropical_function(current_data, network_labels, pos_terms, terms)
         tropical_labels = np.argmax(pos_result, axis=0)
         results = str(sum(tropical_labels == network_labels) / len(network_labels))
         logger.info(

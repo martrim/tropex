@@ -68,27 +68,18 @@ def get_current_data(network, grouped_data, layer_idx, no_data_groups=None):
     return prepare_data_for_tropical_function(current_data)
 
 
-def get_max_data_group_size(arg):
+def get_max_data_group_size():
     nvidia_smi.nvmlInit()
     handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
     info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
     total_memory = info.total
     if total_memory >= 12 * (10 ** 9):
-        if arg.extraction_type == 'pos_and_neg':
-            return 2 ** 12
-        else:
-            return 2 ** 13
+        return 2 ** 12
     elif total_memory >= 6 * (10 ** 9):
-        if arg.extraction_type == 'pos_and_neg':
-            return 2 ** 11
-        else:
-            return 2 ** 12
+        return 2 ** 11
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
-        if arg.extraction_type == 'pos_and_neg':
-            return 2 ** 12
-        else:
-            return 2 ** 13
+        return 2 ** 12
 
 
 def get_last_layer_index(network):
@@ -148,50 +139,6 @@ def make_batches(points, max_data_group_size):
 
 
 def get_batch_data(arg, network, data_type=None):
-    # NETWORK LABELS
-    # if data_type is None:
-    #     data_type = arg.data_type
-    # data, true_labels = load_data(arg, data_type)
-    # if arg.data_type == 'training' and arg.data_set == 'CIFAR10':
-    #     data = data[arg.data_points_lower:arg.data_points_upper]
-    #     true_labels = true_labels[arg.data_points_lower:arg.data_points_upper]
-    #
-    # no_labels = np.max(true_labels) + 1
-    # network_labels = np.argmax(network.predict(data), axis=1)
-    # if subgroups:
-    #     max_data_group_size = get_max_data_group_size(arg)
-    # if get_data:
-    #     grouped_data = group_points(data, network_labels, no_labels, max_data_group_size)
-    #     if not get_labels:
-    #         return grouped_data
-    # if get_labels:
-    #     true_labels = np.concatenate(group_points(true_labels, network_labels, no_labels))
-    #     network_labels = np.concatenate(group_points(network_labels, network_labels, no_labels))
-    #     if not get_data:
-    #         return true_labels, network_labels
-    # return grouped_data, true_labels, network_labels
-    # TRUE LABELS
-    # if data_type is None:
-    #     data_type = arg.data_type
-    # data, true_labels = load_data(arg, data_type)
-    # if arg.data_type == 'training' and arg.data_set == 'CIFAR10':
-    #     data = data[arg.data_points_lower:arg.data_points_upper]
-    #     true_labels = true_labels[arg.data_points_lower:arg.data_points_upper]
-    #
-    # no_labels = np.max(true_labels) + 1
-    # network_labels = np.argmax(network.predict(data), axis=1)
-    # if subgroups:
-    #     max_data_group_size = get_max_data_group_size(arg)
-    # if get_data:
-    #     grouped_data = group_points(data, true_labels, no_labels, max_data_group_size)
-    #     if not get_labels:
-    #         return grouped_data
-    # if get_labels:
-    #     network_labels = np.concatenate(group_points(network_labels, true_labels, no_labels))
-    #     true_labels = np.concatenate(group_points(true_labels, true_labels, no_labels))
-    #     if not get_data:
-    #         return true_labels, network_labels
-    # return grouped_data, true_labels, network_labels
     if data_type is None:
         data_type = arg.data_type
     data, true_labels = load_data(arg, data_type)
@@ -200,7 +147,7 @@ def get_batch_data(arg, network, data_type=None):
         true_labels = true_labels[arg.data_points_lower:arg.data_points_upper]
 
     network_labels = np.argmax(network.predict(data), axis=1)
-    max_data_group_size = get_max_data_group_size(arg)
+    max_data_group_size = get_max_data_group_size()
     data_batches = make_batches(data, max_data_group_size)
     true_labels = make_batches(true_labels, max_data_group_size)
     network_labels = make_batches(network_labels, max_data_group_size)
