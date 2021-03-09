@@ -57,7 +57,7 @@ def load_data(arg, data_type='all'):
 
         from tensorflow.keras.datasets import cifar10
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-    elif arg.data_set == 'MNIST':
+    elif arg.data_set == 'MNIST' or arg.data_set == 'Fashion MNIST':
         if data_type == 'random':
             return np.random.rand(10**4, 28, 28, 1), np.random.randint(0, 10, size=[10**4])
         elif data_type == 'random_100':

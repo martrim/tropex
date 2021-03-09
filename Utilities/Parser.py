@@ -7,15 +7,15 @@ def parse_arguments(print_args=True):
 
     # Mandatory Arguments
     parser.add_argument('--gpu', default='0', type=str, help='gpu number (default: 0)')
-    parser.add_argument('--epochs', default='all', choices=['none', 'all', 'special'],
+    parser.add_argument('--epochs', default='none', choices=['none', 'all', 'special'],
                         help='specify which epochs are used')
-    parser.add_argument('--data_set', default='CIFAR10', choices=['MNIST', 'CIFAR10', 'Fashion MNIST'],
+    parser.add_argument('--data_set', default='MNIST', choices=['MNIST', 'CIFAR10', 'Fashion MNIST'],
                         help='type of architecture used for training (default: CIFAR10)')
-    parser.add_argument('--data_type', default='test', choices=['training', 'test', 'random_hypercube', 'random_100'],
+    parser.add_argument('--data_type', default='training', choices=['training', 'test', 'random_hypercube', 'random_100'],
                         help="use training or test data")
-    parser.add_argument('--network_type_coarse', default='FCN', choices=['-', 'AllCNN', 'FCN', 'ResNet', 'VGG', 'MNIST'],
+    parser.add_argument('--network_type_coarse', default='MNIST', choices=['-', 'AllCNN', 'FCN', 'ResNet', 'VGG', 'MNIST'],
                         help='type of architecture used for training (default: VGG)')
-    parser.add_argument('--network_type_fine', default='8_Layers',
+    parser.add_argument('--network_type_fine', default='FCN4',
                         choices=['Standard', 'Narrow', 'Narrow_with_strides', '8_Layers', 'v1', 'Convolutional', 'FCN4', 'FCN6', 'Wide'],
                         help='name of network structure used for training (default: Standard)')
     parser.add_argument('--early_stopping', dest='early_stopping', action='store_true',
@@ -24,11 +24,16 @@ def parse_arguments(print_args=True):
                         help='specify if learning rate schedule is used')
     parser.add_argument('--weight_decay', dest='weight_decay', action='store_true',
                         help='specify if weight decay is used (only for debugging)')
+    parser.add_argument('--data_points_lower', default=0, type=int, help="lower index of data points (default: 0)")
+    parser.add_argument('--data_points_upper', default=50000, type=int,
+                        help="upper index of data points (default: 100)")
+    parser.add_argument('--extraction_type', default='linear', choices=['pos_and_neg', 'pos', 'neg', 'linear'],
+                        help='type of extraction performed')
 
     # String arguments
-    parser.add_argument('--network_number', default='0', choices=['0', '1', '2', '3', '4'],
+    parser.add_argument('--network_number', default='1', choices=['0', '1', '2', '3', '4'],
                         help='number of saved network; the program loops through all numbers if "all" is selected')
-    parser.add_argument('--network_number_2', default='1', choices=['0', '1', '2', '3', '4'],
+    parser.add_argument('--network_number_1', default='1', choices=['0', '1', '2', '3', '4'],
                         help='number of saved network; the program loops through all numbers if "all" is selected')
     parser.add_argument('--activation_function', default='relu', choices=['leaky_relu', 'relu', 'split_relu'],
                         help='activation functions before the last layer (default: relu)')
@@ -69,13 +74,6 @@ def parse_arguments(print_args=True):
     # Tropical Arguments
     parser.add_argument('--extract_all_dimensions', dest='extract_all_dimensions', action='store_true',
                         help="if True: extract the linear functions corresponding to all dimensions")
-
-    # Transformation Arguments
-    parser.add_argument('--pos_or_neg', default='pos_and_neg', choices=['pos_and_neg', 'pos', 'neg'],
-                        help='compute the numerator or the denominator of the tropical rational function')
-    parser.add_argument('--data_points_lower', default=0, type=int, help="lower index of data points (default: 0)")
-    parser.add_argument('--data_points_upper', default=100, type=int,
-                        help="upper index of data points (default: 100)")
     parser.add_argument('--save_intermediate', dest='save_intermediate', action='store_true',
                         help="saving all intermediate tropical functions")
 
@@ -104,8 +102,8 @@ def parse_arguments(print_args=True):
     # For ResNet, use weight_decay = 1e-4, learning rate scheduler and batch_size=32.
     if "PYCHARM_HOSTED" in os.environ:
         print('Running in Pycharm.')
-        # arg = parser.parse_args(['--early_stopping'])
-        arg = parser.parse_args(['--weight_decay', '--lr_schedule'])
+        arg = parser.parse_args(['--early_stopping'])
+        # arg = parser.parse_args(['--weight_decay', '--lr_schedule'])
     else:
         arg = parser.parse_args()
 

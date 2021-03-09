@@ -6,12 +6,12 @@ from functools import reduce
 from scipy.io import savemat
 from scipy.spatial.distance import cdist
 from Utilities.Custom_Settings import apply_resnet_settings, configure_gpu
-from Utilities.Tropical_Helper_Functions import evaluate_tropical_function, get_current_data, get_grouped_data, \
+from Utilities.Tropical_Helper_Functions import evaluate_tropical_function, get_current_data, \
     get_no_labels, get_tropical_test_labels, load_tropical_function, shift_array, \
     get_tropical_function_directory, evaluate_batch_of_tropical_function, flatten_and_stack, \
     load_tropical_function_batch, \
-    get_epoch_numbers, compute_1_1_euclidean_distances, compute_1_1_angles, get_associated_training_points, \
-    get_max_data_group_size, get_folder_name, \
+    get_epoch_numbers, compute_1_1_euclidean_distances, compute_1_1_angles, compute_1_1_correlations, \
+    get_max_data_group_size, get_folder_name, get_associated_training_points, \
     get_activation_patterns, stack_list_with_subgroups, group_points, partition_according_to_correct_indices
 from Utilities.Data_Loader import load_data
 from Utilities.Logger import *
@@ -730,33 +730,26 @@ def compute_coefficient_statistics(arg, fast):
                  true_distances=true_distances, false_distances=false_distances))
 
 
-def compare_linear_functions():
-    def correlation(A, B):
-        def subtract_mean(A):
-            return A - np.mean(A, axis=0)[np.newaxis, :]
-
-        A = subtract_mean(A)
-        B = subtract_mean(B)
-        A_B = np.sum(A * B, axis=0)
-        A_A = np.sum(A * A, axis=0)
-        B_B = np.sum(B * B, axis=0)
-        divisor = np.sqrt(A_A) * np.sqrt(B_B)
-        correlation = np.divide(A_B, divisor, out=np.ones_like(A_B), where=(divisor != 0))
-        if epoch_number == '00':
-            correlation[0] = 0
-        return correlation
-
+def compare_linear_functions(compute_angles, compute_correlations, compute_distances):
     arg.network_number = network_number
-    pos_terms_0, neg_terms_0 = load_tropical_function(arg, folder_name, no_labels, arg.data_type,
-                                                      epoch_number, load_negative=True)
-    terms_0 = np.vstack(pos_terms_0) - np.vstack(neg_terms_0)
-    arg.network_number = network_number_2
-    pos_terms_1, neg_terms_1 = load_tropical_function(arg, folder_name, no_labels, arg.data_type,
-                                                      epoch_number, load_negative=True)
-    terms_1 = np.vstack(pos_terms_1) - np.vstack(neg_terms_1)
-    terms_0 = terms_0[arg.data_points_lower:arg.data_points_upper]
-    terms_1 = terms_1[arg.data_points_lower:arg.data_points_upper]
-    return correlation(terms_0, terms_1)
+    terms_0, _, _ = load_tropical_function(arg, folder_name, arg.data_type, epoch_number, sign='linear')
+    arg.network_number = network_number_1
+    terms_1, _, _ = load_tropical_function(arg, folder_name, arg.data_type, epoch_number, sign='linear')
+    if compute_angles:
+        angles = compute_1_1_angles(terms_0, terms_1)
+    else:
+        angles = 0
+    if compute_correlations:
+        correlations = compute_1_1_correlations(terms_0, terms_1)
+        if epoch_number == '00':
+            correlations[0] = 0
+    else:
+        correlations = 0
+    if compute_distances:
+        distances = compute_1_1_euclidean_distances(terms_0, terms_1)
+    else:
+        distances = 0
+    return angles, correlations, distances
 
 
 def compare_activation_patterns():
@@ -885,7 +878,7 @@ def interpolation(arg, activation_pattern_changes=True, label_changes=False):
                     np.reshape(activation_pattern, [different_im_per_batch, no_steps, -1]))
             return reshaped_activation_patterns
 
-        activation_patterns = get_activation_patterns(arg, network, data_group=modified_capped_image)
+        activation_patterns = get_activation_patterns(arg, network, batch=modified_capped_image)
         activation_patterns = reshape_activation_patterns(activation_patterns)
         for i in range(different_im_per_batch):
             first_AP_change = no_steps
@@ -974,6 +967,11 @@ def compute_network_accuracies(network, x_train, y_train, x_test, y_test, output
 logger = get_logger(arg)
 epoch_numbers = get_epoch_numbers(arg)
 # epoch_numbers = ['00', '01', '02']
+# chosen_dimensions = {}
+# chosen_dimensions['CIFAR10'] = np.array([1055, 1695, 1478, 1205, 880, 2105, 2141, 2211, 698, 1301, 3014])
+# chosen_dimensions['MNIST'] = np.array([496, 231, 568, 569, 180, 254, 73, 341, 480, 285, 339])
+# chosen_terms_0 = []
+# chosen_terms_1 = []
 
 if arg.mode == 'save_linear_coefficients_to_mat':
     means = []
@@ -988,8 +986,7 @@ if arg.mode == 'exp11_compare_linear_functions':
     correlations = []
     distances = []
     network_number = arg.network_number
-    network_number_2 = arg.network_number_2
-    max_data_group_size = get_max_data_group_size(arg)
+    network_number_1 = arg.network_number_1
     network = load_network(arg, '00')
     folder_name = get_folder_name(network, index=0)
     no_labels = get_no_labels(network)
@@ -1031,7 +1028,10 @@ for epoch_number in epoch_numbers:
         else:
             slide_extracted_function_over_image()
     elif arg.mode == 'exp11_compare_linear_functions':
-        correlations.append(compare_linear_functions())
+        new_angles, new_correlations, new_distances = compare_linear_functions(True, True, True)
+        angles.append(new_angles)
+        correlations.append(new_correlations)
+        distances.append(new_distances)
     elif arg.mode == 'compute_network_accuracies':
         with Manager() as manager:
             outputs = manager.dict()
@@ -1061,20 +1061,30 @@ if arg.mode == 'compute_network_accuracies':
     np.savetxt(path, network_accuracies, delimiter=",")
 
 if arg.mode == 'exp11_compare_linear_functions':
+    # arg.network_number = network_number
+    # chosen_terms_0 = np.array(chosen_terms_0)
+    # saving_directory = get_saving_directory(arg)
+    # np.save(os.path.join(saving_directory, 'chosen_terms_' + str(arg.network_number)), chosen_terms_0)
+    # arg.network_number = network_number_1
+    # chosen_terms_1 = np.array(chosen_terms_1)
+    # saving_directory = get_saving_directory(arg)
+    # np.save(os.path.join(saving_directory, 'chosen_terms_' + str(arg.network_number)), chosen_terms_1)
+
+    angles = np.vstack(angles)
     correlations = np.vstack(correlations)
-    no_data_points = arg.data_points_upper - arg.data_points_lower
-    directory = create_directory('/home', getpass.getuser(), 'Documents/MATLAB/tropex/Data/Exp11', 'DEBUGGING', str(no_data_points))
+    distances = np.vstack(distances)
+    directory = create_directory('/home', getpass.getuser(), 'Documents/MATLAB/tropex/Data/Exp11')
     if arg.data_set == 'MNIST':
         architecture = arg.network_type_fine
     else:
         architecture = arg.network_type_coarse
-    if arg.network_number_2 == '1':
+    if arg.network_number_1 == '1':
         ending = '1.mat'
-    elif arg.network_number_2 == '3':
+    elif arg.network_number_1 == '3':
         ending = '2.mat'
     file_name = '_'.join([arg.data_set, architecture, arg.data_type, ending])
     path = os.path.join(directory, file_name)
-    savemat(path, {'correlations': correlations})
+    savemat(path, {'angles': angles, 'correlations': correlations, 'distances': distances})
 
 if arg.mode == 'save_linear_coefficients_to_mat':
     def reshape_to_image(array):

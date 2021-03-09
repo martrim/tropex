@@ -23,39 +23,40 @@ def evaluate_batch_of_tropical_function(data, pos_terms, neg_terms=None):
     return pos_result
 
 
-def evaluate_tropical_function(data, pos_terms, neg_terms=None):
+def evaluate_tropical_function(data, labels, pos_terms, neg_terms=None):
     # Input:
     # (data_size, no_data_points)-sized array data
     # (no_labels)-sized lists pos_terms, neg_terms
     # Output:
     # (no_labels, no_data_points)-sized array
-    no_labels = len(pos_terms)
+
+    no_labels = int(np.max(labels) + 1)
     pos_result = [None] * no_labels
-    for i in range(no_labels):
-        pos_result[i] = np.max(np.dot(pos_terms[i], data), axis=0)
+    for label in range(no_labels):
+        current_terms = pos_terms[labels == label]
+        pos_result[label] = np.max(np.dot(current_terms[:, 1:], data) + current_terms[:, 0:1], axis=0)
     if neg_terms is not None:
         neg_result = [None] * no_labels
-        for i in range(no_labels):
-            neg_result[i] = np.max(np.dot(neg_terms[i], data), axis=0)
+        for label in range(no_labels):
+            current_terms = neg_terms[labels == label]
+            neg_result[label] = np.max(np.dot(current_terms[:, 1:], data) + current_terms[:, 0:1], axis=0)
         return np.vstack(pos_result), np.vstack(neg_result)
     return np.vstack(pos_result)
 
 
-def evaluate_network_on_subgrouped_data(network, grouped_data):
+def evaluate_network_on_subgrouped_data(network, data_batches):
     output_predictor = K.function([network.layers[0].input],
                                   [network.layers[-2].output])
     x_train_predicted = []
-    for data_group in grouped_data:
-        for subgroup in data_group:
-            x_train_predicted.append(np.max(output_predictor([subgroup])[0], axis=1))
+    for data_batch in data_batches:
+        x_train_predicted.append(np.max(output_predictor([data_batch])[0], axis=1))
     x_train_predicted = np.hstack(x_train_predicted)
     return x_train_predicted
 
 
 def get_current_data(network, grouped_data, layer_idx, no_data_groups=None):
-    last_layer_index = len(network.layers) - 2
-    if layer_idx == last_layer_index:
-        current_data = stack_list_with_subgroups(grouped_data)
+    if layer_idx == 0:
+        current_data = np.vstack(grouped_data)
     else:
         if no_data_groups is None:
             no_data_groups = len(grouped_data)
@@ -73,18 +74,18 @@ def get_max_data_group_size(arg):
     info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
     total_memory = info.total
     if total_memory >= 12 * (10 ** 9):
-        if arg.pos_or_neg == 'pos_and_neg':
+        if arg.extraction_type == 'pos_and_neg':
             return 2 ** 12
         else:
             return 2 ** 13
     elif total_memory >= 6 * (10 ** 9):
-        if arg.pos_or_neg == 'pos_and_neg':
+        if arg.extraction_type == 'pos_and_neg':
             return 2 ** 11
         else:
             return 2 ** 12
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
-        if arg.pos_or_neg == 'pos_and_neg':
+        if arg.extraction_type == 'pos_and_neg':
             return 2 ** 12
         else:
             return 2 ** 13
@@ -92,15 +93,6 @@ def get_max_data_group_size(arg):
 
 def get_last_layer_index(network):
     return len(network.layers) - 2
-
-
-def get_no_batches(arg, network):
-    no_labels = get_no_labels(network)
-    if arg.extract_all_dimensions:
-        no_batches = no_labels ** 2
-    else:
-        no_batches = no_labels
-    return no_batches
 
 
 def get_no_labels(network):
@@ -135,6 +127,7 @@ def group_points(points, labels, no_labels, max_data_group_size=None):
     def ceiling_division(a, b):
         return -(-a // b)
 
+    print('GROUPING POINTS!')
     grouped_points = [None] * no_labels
     for i in range(no_labels):
         grouped_points[i] = points[labels == i]
@@ -145,7 +138,60 @@ def group_points(points, labels, no_labels, max_data_group_size=None):
     return grouped_points
 
 
-def get_grouped_data(arg, network, subgroups=True, data_type=None, get_labels=False, get_data=True):
+def make_batches(points, max_data_group_size):
+    def ceiling_division(a, b):
+        return -(-a // b)
+
+    no_batches = max(ceiling_division(points.shape[0], max_data_group_size), 1)
+    batches = np.array_split(points, no_batches)
+    return batches
+
+
+def get_batch_data(arg, network, data_type=None):
+    # NETWORK LABELS
+    # if data_type is None:
+    #     data_type = arg.data_type
+    # data, true_labels = load_data(arg, data_type)
+    # if arg.data_type == 'training' and arg.data_set == 'CIFAR10':
+    #     data = data[arg.data_points_lower:arg.data_points_upper]
+    #     true_labels = true_labels[arg.data_points_lower:arg.data_points_upper]
+    #
+    # no_labels = np.max(true_labels) + 1
+    # network_labels = np.argmax(network.predict(data), axis=1)
+    # if subgroups:
+    #     max_data_group_size = get_max_data_group_size(arg)
+    # if get_data:
+    #     grouped_data = group_points(data, network_labels, no_labels, max_data_group_size)
+    #     if not get_labels:
+    #         return grouped_data
+    # if get_labels:
+    #     true_labels = np.concatenate(group_points(true_labels, network_labels, no_labels))
+    #     network_labels = np.concatenate(group_points(network_labels, network_labels, no_labels))
+    #     if not get_data:
+    #         return true_labels, network_labels
+    # return grouped_data, true_labels, network_labels
+    # TRUE LABELS
+    # if data_type is None:
+    #     data_type = arg.data_type
+    # data, true_labels = load_data(arg, data_type)
+    # if arg.data_type == 'training' and arg.data_set == 'CIFAR10':
+    #     data = data[arg.data_points_lower:arg.data_points_upper]
+    #     true_labels = true_labels[arg.data_points_lower:arg.data_points_upper]
+    #
+    # no_labels = np.max(true_labels) + 1
+    # network_labels = np.argmax(network.predict(data), axis=1)
+    # if subgroups:
+    #     max_data_group_size = get_max_data_group_size(arg)
+    # if get_data:
+    #     grouped_data = group_points(data, true_labels, no_labels, max_data_group_size)
+    #     if not get_labels:
+    #         return grouped_data
+    # if get_labels:
+    #     network_labels = np.concatenate(group_points(network_labels, true_labels, no_labels))
+    #     true_labels = np.concatenate(group_points(true_labels, true_labels, no_labels))
+    #     if not get_data:
+    #         return true_labels, network_labels
+    # return grouped_data, true_labels, network_labels
     if data_type is None:
         data_type = arg.data_type
     data, true_labels = load_data(arg, data_type)
@@ -153,20 +199,12 @@ def get_grouped_data(arg, network, subgroups=True, data_type=None, get_labels=Fa
         data = data[arg.data_points_lower:arg.data_points_upper]
         true_labels = true_labels[arg.data_points_lower:arg.data_points_upper]
 
-    no_labels = np.max(true_labels) + 1
     network_labels = np.argmax(network.predict(data), axis=1)
-    if subgroups:
-        max_data_group_size = get_max_data_group_size(arg)
-    if get_data:
-        grouped_data = group_points(data, true_labels, no_labels, max_data_group_size)
-        if not get_labels:
-            return grouped_data
-    if get_labels:
-        network_labels = np.concatenate(group_points(true_labels, network_labels, no_labels))
-        true_labels = np.concatenate(group_points(true_labels, network_labels, no_labels))
-        if not get_data:
-            return true_labels, network_labels
-    return grouped_data, true_labels, network_labels
+    max_data_group_size = get_max_data_group_size(arg)
+    data_batches = make_batches(data, max_data_group_size)
+    true_labels = make_batches(true_labels, max_data_group_size)
+    network_labels = make_batches(network_labels, max_data_group_size)
+    return data_batches, true_labels, network_labels
 
 
 def stack_list_with_subgroups(terms):
@@ -197,8 +235,8 @@ def load_tropical_function_batch(save_dir, batch_idx, load_negative=False):
     return pos_terms
 
 
-def get_tropical_filename_ending(batch_idx, subgroup_number):
-    return '_label_' + str(batch_idx) + '_split_' + str(subgroup_number) + '.npy'
+def get_tropical_filename_ending(batch_idx):
+    return '_batch_{}.npy'.format(batch_idx)
 
 
 def get_no_subgroups(list_of_file_names, data_group_number):
@@ -209,46 +247,21 @@ def get_folder_name(network, index):
     return '_'.join([str(index), network.layers[index].name])
 
 
-def load_tropical_function(arg, folder_name, no_labels, data_type, epoch_number, load_negative=False, stacked=False):
+def load_tropical_function(arg, folder_name, data_type, epoch_number, sign='pos'):
     save_dir = get_tropical_function_directory(arg, folder_name, data_type, epoch_number)
-    list_of_file_names = os.listdir(save_dir)
-    pos_terms = [None] * no_labels
-    for data_group_number in range(no_labels):
-        no_subgroups = get_no_subgroups(list_of_file_names, data_group_number)
-        file_name_ending = get_tropical_filename_ending(data_group_number, 0)
-        path = os.path.join(save_dir, 'pos' + file_name_ending)
+    no_batches = max(map(lambda x: int(''.join(filter(str.isdigit, x))), os.listdir(save_dir))) + 1
+    terms = [None] * no_batches
+    for batch_idx in range(no_batches):
+        file_name_ending = get_tropical_filename_ending(batch_idx)
+        path = os.path.join(save_dir, sign + file_name_ending)
         if not os.path.isfile(path):
             continue
         else:
-            pos_terms[data_group_number] = np.load(path)
-            for subgroup_number in range(1, no_subgroups):
-                file_name_ending = get_tropical_filename_ending(data_group_number, subgroup_number)
-                new_terms = np.load(os.path.join(save_dir, 'pos' + file_name_ending))
-                pos_terms[data_group_number] = np.vstack([pos_terms[data_group_number], new_terms])
-    pos_terms = list(filter(None.__ne__, pos_terms))
-    if load_negative:
-        neg_terms = [None] * no_labels
-        for data_group_number in range(no_labels):
-            no_subgroups = get_no_subgroups(list_of_file_names, data_group_number)
-            file_name_ending = get_tropical_filename_ending(data_group_number, 0)
-            path = os.path.join(save_dir, 'neg' + file_name_ending)
-            if not os.path.isfile(path):
-                continue
-            else:
-                neg_terms[data_group_number] = np.load(path)
-                for subgroup_number in range(1, no_subgroups):
-                    file_name_ending = get_tropical_filename_ending(data_group_number, subgroup_number)
-                    new_terms = np.load(os.path.join(save_dir, 'neg' + file_name_ending))
-                    neg_terms[data_group_number] = np.vstack([neg_terms[data_group_number], new_terms])
-        neg_terms = list(filter(None.__ne__, neg_terms))
-        if stacked:
-            return np.vstack(pos_terms), np.vstack(neg_terms)
-        else:
-            return pos_terms, neg_terms
-    if stacked:
-        return np.vstack(pos_terms)
-    else:
-        return pos_terms
+            terms[batch_idx] = np.load(path)
+    terms = np.vstack(list(filter(None.__ne__, terms)))
+    true_labels = terms[:, 0]
+    network_labels = terms[:, 1]
+    return terms[:, 2:], true_labels, network_labels
     
 
 def predict_data(network, data_batch, flag, layer_idx):
@@ -284,7 +297,7 @@ def get_layer_type(layer):
     return layer.name.split('_')[0]
 
 
-def get_activation_patterns(arg, network, data_group=None):
+def get_activation_patterns(arg, network, batch=None):
     # activation_patterns = no_data_groups x no_data_subgroups x no_relevant_layers
     def turn_data_into_activation_patterns(data):
         current_activation_patterns = []
@@ -344,11 +357,9 @@ def get_activation_patterns(arg, network, data_group=None):
             outputs.append(layers_without_softmax[layer_idx - 1].output)
             outputs.append(layer.output)
 
-    # Configure the GPU for Tensorflow
-    configure_gpu(arg)
-
+    os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpu
     predictor = K.function([input], outputs)
-    predicted_data = predictor([data_group])
+    predicted_data = predictor([batch])
     activation_patterns = turn_data_into_activation_patterns(predicted_data)
     K.clear_session()
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
@@ -400,28 +411,42 @@ def get_tropical_function_directory(arg, folder_name, data_type, epoch_number):
     return func_dir
 
 
-def flatten_and_stack(variable_part, bias_part):
-    variable_part = np.reshape(variable_part, newshape=[variable_part.shape[0], -1])
-    result = np.hstack([bias_part, variable_part])
+def flatten_and_stack(true_labels, network_labels, bias, B, batch_idx):
+    B = np.reshape(B, newshape=[B.shape[0], -1])
+    true_labels = np.expand_dims(true_labels[batch_idx], axis=1)
+    network_labels = np.expand_dims(network_labels[batch_idx], axis=1)
+    result = np.hstack([true_labels, network_labels, bias, B])
     return result
 
 
 def prepare_data_for_tropical_function(data):
-    return flatten_and_stack(data, np.ones_like(data[:, 0:1, 0, 0])).transpose()
+    return np.reshape(data, newshape=[data.shape[0], -1]).transpose()
 
 
 def normalize(matrix):
-    return matrix / np.linalg.norm(matrix, axis=1)[:, np.newaxis]
+    return matrix / np.linalg.norm(matrix, axis=1, keepdims=True)
 
 
-def compute_1_1_euclidean_distances(terms_0, terms_1):
-    return np.linalg.norm(terms_0 - terms_1, axis=1)
+def compute_1_1_euclidean_distances(A, B):
+    return np.linalg.norm(A - B, axis=1)
 
 
-def compute_1_1_angles(terms_0, terms_1):
-    terms_0 = normalize(terms_0)
-    terms_1 = normalize(terms_1)
-    return np.arccos(np.clip(np.einsum('ij,ij->i', terms_0, terms_1), -1, 1))
+def compute_1_1_angles(A, B):
+    A = normalize(A)
+    B = normalize(B)
+    # clipping because there may be values slightly above 1/below -1
+    return np.arccos(np.clip(np.einsum('ij,ij->i', A, B), -1, 1))
+
+
+def compute_1_1_correlations(A, B):
+    A -= np.mean(A, axis=0, keepdims=True)
+    B -= np.mean(B, axis=0, keepdims=True)
+    A_B = np.sum(A * B, axis=0)
+    A_A = np.sum(A * A, axis=0)
+    B_B = np.sum(B * B, axis=0)
+    divisor = np.sqrt(A_A) * np.sqrt(B_B)
+    correlation = np.divide(A_B, divisor, out=np.ones_like(A_B), where=(divisor != 0))
+    return correlation
 
 
 def shift_array(array, v_shift, h_shift, filling='zeros'):

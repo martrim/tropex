@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from Utilities.Tropical_Helper_Functions import flatten_and_stack, get_no_data_subgroups_per_data_group, \
-    get_tropical_function_directory, get_activation_patterns, get_no_data_points_per_label, get_layer_type, get_epoch_numbers, \
-    get_tropical_filename_ending, get_max_data_group_size, get_grouped_data, get_folder_name
+from Utilities.Tropical_Helper_Functions import flatten_and_stack, get_tropical_function_directory, \
+    get_activation_patterns, get_layer_type, get_epoch_numbers, get_tropical_filename_ending, get_batch_data, \
+    get_folder_name
 from Utilities.Custom_Settings import apply_resnet_settings, configure_gpu
 from Utilities.Logger import *
 from Utilities.Network_Loader import load_network
@@ -22,13 +22,13 @@ if arg.network_type_coarse == 'ResNet':
 configure_gpu(arg)
 
 
-def transform_batch(batch_idx, subgroup_number, sign):
-    def save(batch_idx, layer_idx, B, bias, subgroup_number):
+def transform_batch(batch_idx, sign):
+    def save(batch_idx, layer_idx, B, bias):
         folder_name = get_folder_name(network, layer_idx)
         save_dir = get_tropical_function_directory(arg, folder_name, arg.data_type, epoch_number)
-        file_name_ending = get_tropical_filename_ending(batch_idx, subgroup_number)
+        file_name_ending = get_tropical_filename_ending(batch_idx)
 
-        B = flatten_and_stack(B, bias)
+        B = flatten_and_stack(true_labels, network_labels, bias, B, batch_idx)
         np.save(os.path.join(save_dir, sign + file_name_ending), B)
 
     def add(B_0, bias_0, B_max_0, B_1, bias_1, B_max_1):
@@ -107,7 +107,6 @@ def transform_batch(batch_idx, subgroup_number, sign):
 
         B, bias = merge_layers(layer, B, bias)
         B += K
-
         return B, bias, B_max
 
     def dense(B, bias, B_max):
@@ -148,16 +147,20 @@ def transform_batch(batch_idx, subgroup_number, sign):
         B[activation_patterns[counter]] = 0
         return B
 
-    B_max = np.max(np.vstack([A_plus, A_minus]), axis=0)
-    B_max = B_max[1:]
     if sign == 'pos':
-        B = np.repeat(A_plus[dim_number:dim_number + 1, :], no_data_points_in_subgroup, axis=0)
+        B = A_plus[network_labels[batch_idx]]
+        B_max = np.max(np.vstack([A_plus, A_minus]), axis=0)
     elif sign == 'neg':
-        B = np.repeat(A_minus, no_data_points_in_subgroup, axis=0)
+        B = np.repeat(A_minus, network_labels[batch_idx].shape[0], axis=0)
+        B_max = np.max(np.vstack([A_plus, A_minus]), axis=0)
+    elif sign == 'linear':
+        B = W[network_labels[batch_idx]]
+        B_max = np.zeros_like(A_plus[0])
     else:
         return
 
     bias = B[:, 0:1]
+    B_max = B_max[1:]
     B = B[:, 1:]
 
     if last_layer_type == 'global':
@@ -165,7 +168,7 @@ def transform_batch(batch_idx, subgroup_number, sign):
         B_max = B_max.reshape([-1, h, w, c])
 
     if arg.save_intermediate:
-        save(batch_idx, len(network.layers)-1, B, bias, subgroup_number)
+        save(batch_idx, len(network.layers)-1, B, bias)
 
     counter = 0
     input_names = []
@@ -217,15 +220,14 @@ def transform_batch(batch_idx, subgroup_number, sign):
                 input_names = []
 
         if arg.save_intermediate and layer_type in saving_types:
-            save(batch_idx, layer_idx, B, bias, subgroup_number)
+            save(batch_idx, layer_idx, B, bias)
         logger.info('Done with merge ' + str(layer_idx) + ' of ' + str(last_layer_index))
 
-    save(batch_idx, layer_idx, B, bias, subgroup_number)
+    save(batch_idx, layer_idx, B, bias)
     logger.info('Done with batch ' + str(batch_idx + 1) + ' of ' + str(no_batches))
 
 
 logger = get_logger(arg)
-max_data_group_size = get_max_data_group_size(arg)
 epoch_numbers = get_epoch_numbers(arg)
 
 for epoch_number in epoch_numbers:
@@ -235,19 +237,11 @@ for epoch_number in epoch_numbers:
     # subtract 2 because we skip the final activation and indexing starts from 0 and not from 1
     last_layer_index = len(network.layers) - 2
     no_labels = network.layers[-1].output_shape[1]
-    grouped_data = get_grouped_data(arg, network, max_data_group_size)
-    # CHANGED!!!!!!!!!!!!!!!!
-    no_labels = 1
-    grouped_data = [[grouped_data[0][0][0:100]]]
-    no_data_points_per_label = get_no_data_points_per_label(grouped_data)
-    no_data_subgroups_per_data_group = get_no_data_subgroups_per_data_group(grouped_data)
-    if arg.extract_all_dimensions:
-        no_batches = no_labels ** 2
-    else:
-        no_batches = no_labels
+    data_batches, true_labels, network_labels = get_batch_data(arg, network)
+    no_batches = len(data_batches)
 
-    for label in range(no_labels):
-        print('No of data with label ' + str(label) + ': ' + str(no_data_points_per_label[label]))
+    for batch_idx in range(no_batches):
+        print('No of data in batch ' + str(batch_idx + 1) + ': ' + str(data_batches[batch_idx].shape[0]))
 
     saving_types = ['conv2d', 'dense', 'global', 'max']
 
@@ -267,33 +261,18 @@ for epoch_number in epoch_numbers:
     else:
         raise Exception('Incorrect type of the last layer.')
 
-    W_plus = W * (W > 0)
-    W_minus = (-W) * (W < 0)
+    A_minus = np.expand_dims(np.sum((-W) * (W < 0), axis=0), axis=0)
+    A_plus = W + A_minus
 
-    A_minus = np.expand_dims(np.sum(W_minus, axis=0), axis=0)
-    A_plus = W_plus + A_minus - W_minus
-    # CHANGED!!!!!!!!!!!!!!!!
     for batch_idx in range(no_batches):
-        if arg.extract_all_dimensions:
-            dim_number = batch_idx // no_labels
-            data_group_number = batch_idx % no_labels
-        else:
-            dim_number = batch_idx
-            data_group_number = batch_idx
-
-        print('data group: ' + str(data_group_number))
-        if no_data_points_per_label[data_group_number] == 0:
-            continue
-        else:
-            for subgroup_number in range(no_data_subgroups_per_data_group[data_group_number]):
-                no_data_points_in_subgroup = grouped_data[data_group_number][subgroup_number].shape[0]
-                print('data subgroup: ' + str(subgroup_number))
-                print(str(no_data_points_in_subgroup))
-                activation_patterns = get_activation_patterns(arg, network, data_group=grouped_data[data_group_number][subgroup_number])
-                if (arg.pos_or_neg == 'pos_and_neg') or (arg.pos_or_neg == 'pos'):
-                    transform_batch(batch_idx, subgroup_number, 'pos')
-                if (arg.pos_or_neg == 'pos_and_neg') or (arg.pos_or_neg == 'neg'):
-                    transform_batch(batch_idx, subgroup_number, 'neg')
+        print('Batch ' + str(batch_idx+1) + ' of ' + str(no_batches))
+        activation_patterns = get_activation_patterns(arg, network, batch=data_batches[batch_idx])
+        if (arg.extraction_type == 'pos_and_neg') or (arg.extraction_type == 'pos'):
+            transform_batch(batch_idx, 'pos')
+        if (arg.extraction_type == 'pos_and_neg') or (arg.extraction_type == 'neg'):
+            transform_batch(batch_idx, 'neg')
+        if arg.extraction_type == 'linear':
+            transform_batch(batch_idx, 'linear')
 
 for handler in logger.handlers:
     handler.close()
