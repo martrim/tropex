@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+exit_statuses=()
+counter=0
+gpu_number=1
+gpu="--gpu $gpu_number"
+epochs="--epochs all"
+network_number_2="--network_number_2 3"
+mode="--mode exp11_compare_linear_functions"
+lr_schedule="--lr_schedule"
+weight_decay="--weight_decay"
+standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_schedule $weight_decay"
+
+
+data_set="--data_set CIFAR10"
+network_type_coarse="--network_type_coarse VGG"
+network_type_fine="--network_type_fine Standard"
+architecture="$data_set $network_type_coarse $network_type_fine"
+# EXPERIMENTS - 100
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '100' --network_number_2 '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0' --data_points_upper '100' --network_number_2 '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '2' --data_points_upper '100' --network_number_2 '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '100' --network_number_2 '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+# EXPERIMENTS - 10
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '10' --network_number_2 '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0' --data_points_upper '10' --network_number_2 '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '2' --data_points_upper '10' --network_number_2 '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '10' --network_number_2 '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+# EXPERIMENTS - 2
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '2' --network_number_2 '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '0' --data_points_upper '2' --network_number_2 '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '2' --data_points_upper '2' --network_number_2 '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '2' --network_number_2 '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+
+bash print_script_summary "${exit_statuses[@]}"
+

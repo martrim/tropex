@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+exit_statuses=()
+counter=0
+gpu_number=0
+gpu="--gpu $gpu_number"
+epochs="--epochs all"
+network_number_2="--network_number_2 1"
+mode="--mode exp11_compare_linear_functions"
+lr_schedule="--lr_schedule"
+weight_decay="--weight_decay"
+standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_schedule $weight_decay"
+
+
+
+
+data_set="--data_set MNIST"
+network_type_coarse="--network_type_coarse MNIST"
+network_type_fine="--network_type_fine FCN4"
+architecture="$data_set $network_type_coarse $network_type_fine"
+# NETWORK TRAINER
+counter=$((counter+1))
+bash print_command $counter
+python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '0'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '2'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Network_Trainer.py $standard_arguments $architecture --data_type 'test' --network_number '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+# TROPEX - training
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '0'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '2'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'training' --network_number '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+# TROPEX - test
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '0'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '1'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '2'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Tropex.py $standard_arguments $architecture --data_type 'test' --network_number '3'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+# EXPERIMENTS - 100
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '100'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '100'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '100'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '100'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+# EXPERIMENTS - 10
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '10'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '10'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '10'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '10'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+# EXPERIMENTS - 2
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '2'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'training' --network_number '0' --data_points_upper '2'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '2'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+counter=$((counter+1))
+bash print_command $counter
+python Experiments.py $standard_arguments $architecture --data_type 'test' --network_number '2' --data_points_upper '2'
+exit_status=$?
+bash print_summary $counter $exit_status $gpu_number
+exit_statuses+=("$exit_status")
+
+
+bash print_script_summary "${exit_statuses[@]}"
+
