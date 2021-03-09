@@ -8,7 +8,7 @@ mode="--mode exp11_compare_linear_functions"
 extraction_type="--extraction_type linear"
 lr_schedule="--lr_schedule"
 weight_decay="--weight_decay"
-standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_schedule $weight_decay" $extraction_type
+standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_schedule $weight_decay $extraction_type"
 
 
 
