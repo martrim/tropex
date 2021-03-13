@@ -1,36 +1,21 @@
 #!/usr/bin/env bash
 exit_statuses=()
 counter=0
-tropex_directory="/home/martint/tropex/"
-script_directory="${tropex_directory}Scripts/"
+main_directory="/home/martint/tropex/"
+script_directory="${main_directory}Scripts/"
 print_command="${script_directory}print_command"
 print_summary="${script_directory}print_summary"
 print_script_summary="${script_directory}print_script_summary"
-tropex="${tropex_directory}Tropex.py"
+tropex="${main_directory}Tropex.py"
+experiments="${main_directory}Experiments.py"
 gpu_number=1
 gpu="--gpu $gpu_number"
-epochs="--epochs special"
+epochs="--epochs all"
 mode="--mode exp11_compare_linear_functions"
 extraction_type="--extraction_type pos"
 lr_schedule="--lr_schedule"
 weight_decay="--weight_decay"
 standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_schedule $weight_decay $extraction_type"
-
-
-
-
-data_set="--data_set CIFAR10"
-network_type_coarse="--network_type_coarse VGG"
-network_type_fine="--network_type_fine Standard"
-architecture="$data_set $network_type_coarse $network_type_fine"
-# TROPEX
-counter=$((counter+1))
-bash $print_command $counter
-python $tropex $standard_arguments $architecture --data_type 'training' --network_number '2'
-exit_status=$?
-bash $print_summary $counter $exit_status $gpu_number
-exit_statuses+=("$exit_status")
-
 
 
 
