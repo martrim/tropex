@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 find . -name '*.out' -delete
-rm log.txt
+if [ -f log.txt ];
+	then rm log.txt
+fi
 

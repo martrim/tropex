@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+tropex_directory="/home/martint/tropex/"
+script_directory="${tropex_directory}Scripts/"
+
+#nohup bash "${script_directory}minsky0" &> 0.out &
+nohup bash "${script_directory}minsky1" &> 1.out &

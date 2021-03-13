@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-nohup bash dechter0 &> 0.out &
-nohup bash dechter1 &> 1.out &

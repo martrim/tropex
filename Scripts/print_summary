@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
+tropex_directory="/home/martint/tropex/"
 
 counter=$1
 exit_status=$2
 gpu_number=$3
 if [ $exit_status -eq 0 ]; then
-	echo "Command $counter: Success." >> summary${gpu_number}.out
+	echo "Command $counter: Success." >> "${tropex_directory}summary${gpu_number}.out"
 else
-	echo "Command $counter: Failure." >> summary${gpu_number}.out
+	echo "Command $counter: Failure." >> "${tropex_directory}summary${gpu_number}.out"
 	PARENT_COMMAND=$(ps -o command= -p "$PPID" | awk '{print $2}')
 	notify-send -i face-devilish -u critical "Error in script." $PARENT_COMMAND
 fi
