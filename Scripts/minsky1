@@ -20,8 +20,8 @@ standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_sch
 
 
 data_set="--data_set CIFAR10"
-network_type_coarse="--network_type_coarse VGG"
-network_type_fine="--network_type_fine Standard"
+network_type_coarse="--network_type_coarse FCN"
+network_type_fine="--network_type_fine 8_Layers"
 architecture="$data_set $network_type_coarse $network_type_fine"
 # TROPEX
 counter=$((counter+1))
