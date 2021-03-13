@@ -2,10 +2,10 @@
 exit_statuses=()
 counter=0
 tropex_directory="/home/martint/tropex/"
-logging_directory="${tropex_directory}Scripts/Logging/"
-print_command="${logging_directory}print_command"
-print_summary="${logging_directory}print_summary"
-print_script_summary="${logging_directory}print_script_summary"
+script_directory="${tropex_directory}Scripts/"
+print_command="${script_directory}print_command"
+print_summary="${script_directory}print_summary"
+print_script_summary="${script_directory}print_script_summary"
 tropex="${tropex_directory}Tropex.py"
 gpu_number=1
 gpu="--gpu $gpu_number"
