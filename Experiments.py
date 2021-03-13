@@ -4,13 +4,12 @@ import pickle
 import numpy as np
 from functools import reduce
 from scipy.io import savemat
-from scipy.spatial.distance import cdist
 from Utilities.Custom_Settings import apply_resnet_settings, configure_gpu
 from Utilities.Tropical_Helper_Functions import evaluate_tropical_function, get_current_data, \
     get_no_labels, get_tropical_test_labels, load_tropical_function, shift_array, \
     get_tropical_function_directory, evaluate_batch_of_tropical_function, flatten_and_stack, \
-    load_tropical_function_batch, \
-    get_epoch_numbers, compute_1_1_euclidean_distances, compute_1_1_angles, compute_1_1_correlations, \
+    load_tropical_function_batch, get_batch_data, get_max_indices, \
+    get_epoch_numbers, compute_similarity, \
     get_max_data_group_size, get_folder_name, get_associated_training_points, \
     get_activation_patterns, stack_list_with_subgroups, group_points, partition_according_to_correct_indices
 from Utilities.Data_Loader import load_data
@@ -542,214 +541,36 @@ def slide_extracted_function_batchwise_over_image():
     logger.info('Increase of test accuracy: ' + str(test_accuracy_maxing / tropical_accuracy))
 
 
-def compute_coefficient_statistics(arg, fast):
-    def calculate_statistics(value_dict, dict, i):
-        for key in dict.keys():
-            split_key = key.split('_')
-            if split_key[0] == 'opt':
-                dict[key]['mean'][i] = np.mean(value_dict[key][i])
-                dict[key]['median'][i] = np.median(value_dict[key][i])
-                dict[key]['std'][i] = np.std(value_dict[key][i])
-                dict[key]['min'][i] = np.min(value_dict[key][i])
-                dict[key]['max'][i] = np.max(value_dict[key][i])
-            elif split_key[0] == 'all':
-                for j in range(no_labels):
-                    dict[key]['mean'][i][j] = np.mean(value_dict[key][i][j])
-                    dict[key]['median'][i][j] = np.median(value_dict[key][i][j])
-                    dict[key]['std'][i][j] = np.std(value_dict[key][i][j])
-                    dict[key]['min'][i][j] = np.min(value_dict[key][i][j])
-                    dict[key]['max'][i][j] = np.max(value_dict[key][i][j])
-            elif split_key[0] == 'ranking':
-                if len(split_key) > 2:
-                    type = split_key[-2] + '_' + split_key[-1]
-                else:
-                    type = split_key[-1]
-                sorted_values = np.sort(np.vstack(value_dict['all_' + type][i]), axis=0)
-                indices = np.argmin(np.abs(sorted_values - value_dict['opt_' + type][i][np.newaxis, :]), axis=0)
-                dict[key]['mean'][i] = np.mean(indices)
-                dict[key]['median'][i] = np.median(indices)
-                dict[key]['std'][i] = np.std(indices)
-                dict[key]['min'][i] = np.min(indices)
-                dict[key]['max'][i] = np.max(indices)
-        return dict
+def compute_coefficient_statistics(arg):
+    pos_training_terms, _, network_labels_training = load_tropical_function(arg, folder_name, 'training', epoch_number,
+                                                                            sign='pos')
+    arg.data_type = 'test'
+    test_data_batches, _, network_labels_test = get_batch_data(arg, network)
+    max_training_indices = get_max_indices(pos_training_terms, test_data_batches)
+    tropical_test_labels = network_labels_training[max_training_indices]
+    network_labels_test = np.concatenate(network_labels_test)
+    tropical_agreement = tropical_test_labels == network_labels_test
+    tropical_disagreement = tropical_test_labels != network_labels_test
+    correct_indices = max_training_indices[tropical_agreement]
+    incorrect_indices = max_training_indices[tropical_disagreement]
 
-    def create_dict(dim):
-        if dim == 1:
-            return {'mean': np.zeros(no_labels), 'median': np.zeros(no_labels), 'std': np.zeros(no_labels),
-                    'min': np.zeros(no_labels), 'max': np.zeros(no_labels)}
-        if dim == 2:
-            return {'mean': np.zeros([no_labels, no_labels]), 'median': np.zeros([no_labels, no_labels]),
-                    'std': np.zeros([no_labels, no_labels]), 'min': np.zeros([no_labels, no_labels]),
-                    'max': np.zeros([no_labels, no_labels])}
+    training_terms, _, _ = load_tropical_function(arg, folder_name, 'training', epoch_number, sign='linear')
+    test_terms, _, _ = load_tropical_function(arg, folder_name, 'test', epoch_number, sign='linear')
 
-    def get_current_indices(idx):
-        if idx == 'all':
-            current_data = stack_list_with_subgroups(grouped_test_data)
-        else:
-            current_data = grouped_test_data[idx]  # test data grouped according to labels predicted by the network
-        current_data = np.reshape(current_data, newshape=[current_data.shape[0], -1])
-        current_data = np.hstack([np.ones_like(current_data[:, 0:1]), current_data])
-        current_data = current_data.transpose()
-        return np.argmax(np.dot(pos_training_terms, current_data), axis=0)
-        # for each test data point of index idx, returns the index of the training function on whose linear region
-        # the data point lies
+    true_angles, true_correlations, true_distances = \
+        compute_similarity(training_terms[correct_indices], test_terms[tropical_agreement], epoch_number)
+    false_angles, false_correlations, false_distances = \
+        compute_similarity(training_terms[incorrect_indices], test_terms[tropical_disagreement], epoch_number)
 
-    def compute_distances(training_info, test_functions, type):
-        if type == '1-1':
-            training_functions = training_terms[training_info]
-            distances = compute_1_1_euclidean_distances(training_functions, test_functions)
-            angles = compute_1_1_angles(training_functions, test_functions)
-        elif type == 'pairwise':
-            training_functions = training_info
-            distances = cdist(training_functions, test_functions)
-            angles = np.arccos(1 - cdist(training_functions, test_functions, 'cosine'))
-        return distances, angles
-
-    pos_training_terms, neg_training_terms = load_tropical_function(arg, network, 'training', epoch_number,
-                                                                    load_negative=True, stacked=True)
-    pos_test_terms, neg_test_terms = load_tropical_function(arg, network, 'test', epoch_number, load_negative=True,
-                                                            stacked=True)
-    training_terms = pos_training_terms - neg_training_terms
-    test_terms = pos_test_terms - neg_test_terms
-
-    grouped_test_data, true_labels, network_labels = get_grouped_data(arg, network, data_type='test', get_labels=True)
-    max_train_func_idxs = get_current_indices('all')
-    tropical_test_labels = get_tropical_test_labels(arg, network, grouped_test_data, last_layer_index, epoch_number)
-    tropical_true_indices = (tropical_test_labels == network_labels)
-    tropical_false_indices = np.logical_not(tropical_true_indices)
-    true_test_functions = test_terms[tropical_true_indices]
-    true_max_train_func_idxs = max_train_func_idxs[tropical_true_indices]
-    false_test_functions = test_terms[tropical_false_indices]
-    false_max_train_func_idxs = max_train_func_idxs[tropical_false_indices]
-    true_test_labels = network_labels[tropical_true_indices]
-    false_test_labels = network_labels[tropical_false_indices]
-    true_test_functions = group_points(true_test_functions, true_test_labels, no_labels)
-    false_test_functions = group_points(false_test_functions, false_test_labels, no_labels)
-    true_max_train_func_idxs = group_points(true_max_train_func_idxs, true_test_labels, no_labels)
-    false_max_train_func_idxs = group_points(false_max_train_func_idxs, false_test_labels, no_labels)
-    no_true_points = np.zeros([no_labels])
-    no_false_points = np.zeros([no_labels])
-    for i in range(no_labels):
-        no_true_points[i] = true_max_train_func_idxs[i].shape[0]
-        no_false_points[i] = false_max_train_func_idxs[i].shape[0]
-
-    if fast:
-        stats_dict = {'opt_angles': create_dict(1), 'opt_distances': create_dict(1),
-                      'opt_true_angles': create_dict(1), 'opt_true_distances': create_dict(1),
-                      'opt_false_angles': create_dict(1), 'opt_false_distances': create_dict(1),
-                      'no_true_points': no_true_points, 'no_false_points': no_false_points}
-    else:
-        stats_dict = {'opt_angles': create_dict(1), 'opt_distances': create_dict(1),
-                      'opt_true_angles': create_dict(1), 'opt_true_distances': create_dict(1),
-                      'opt_false_angles': create_dict(1), 'opt_false_distances': create_dict(1),
-                      'all_angles': create_dict(2), 'all_distances': create_dict(2),
-                      'ranking_angles': create_dict(1), 'ranking_distances': create_dict(1),
-                      'ranking_true_angles': create_dict(1), 'ranking_true_distances': create_dict(1),
-                      'ranking_false_angles': create_dict(1), 'ranking_false_distances': create_dict(1),
-                      'no_true_points': no_true_points, 'no_false_points': no_false_points}
-
-    all_angles = [[None] * 10 for i in range(10)]
-    all_true_angles = [[None] * 10 for i in range(10)]
-    all_false_angles = [[None] * 10 for i in range(10)]
-    all_distances = [[None] * 10 for i in range(10)]
-    all_true_distances = [[None] * 10 for i in range(10)]
-    all_false_distances = [[None] * 10 for i in range(10)]
-    opt_true_distances = [None] * 10
-    opt_true_angles = [None] * 10
-    opt_false_distances = [None] * 10
-    opt_false_angles = [None] * 10
-    opt_distances = [None] * 10
-    opt_angles = [None] * 10
-    for i in range(no_labels):
-        opt_true_distances[i], opt_true_angles[i] = compute_distances(true_max_train_func_idxs[i],
-                                                                      true_test_functions[i], '1-1')
-        opt_false_distances[i], opt_false_angles[i] = compute_distances(false_max_train_func_idxs[i],
-                                                                        false_test_functions[i], '1-1')
-        opt_distances[i] = np.hstack([opt_true_distances[i], opt_false_distances[i]])
-        opt_angles[i] = np.hstack([opt_true_angles[i], opt_false_angles[i]])
-        if not fast:
-            for j in range(no_labels):
-                training_functions_j = load_functions('training', j)
-                all_true_distances[i][j], all_true_angles[i][j] = compute_distances(training_functions_j,
-                                                                                    true_test_functions[i], 'pairwise')
-                all_false_distances[i][j], all_false_angles[i][j] = compute_distances(training_functions_j,
-                                                                                      false_test_functions[i],
-                                                                                      'pairwise')
-                all_distances[i][j] = np.hstack([all_true_distances[i][j], all_false_distances[i][j]])
-                all_angles[i][j] = np.hstack([all_true_angles[i][j], all_false_angles[i][j]])
-        value_dict = {'opt_angles': opt_angles, 'opt_distances': opt_distances,
-                      'opt_true_angles': opt_true_angles, 'opt_true_distances': opt_true_distances,
-                      'opt_false_angles': opt_false_angles, 'opt_false_distances': opt_false_distances,
-                      'all_angles': all_angles, 'all_distances': all_distances,
-                      'all_true_angles': all_true_angles, 'all_true_distances': all_true_distances,
-                      'all_false_angles': all_false_angles, 'all_false_distances': all_false_distances}
-        stats_dict = calculate_statistics(value_dict, stats_dict, i)
-
-    save_dir = get_saving_directory(arg)
-    saving_path = os.path.join(save_dir, 'Coefficient_Analysis')
-    if not os.path.isdir(saving_path):
-        os.makedirs(saving_path, exist_ok=True)
-
-    file_name = 'coefficient_statistics.pkl'
-    with open(os.path.join(saving_path, file_name), 'wb') as f:
-        pickle.dump(stats_dict, f)
-
-    for key in value_dict.keys():
-        split_key = key.split('_')
-        current_saving_path = os.path.join(saving_path, split_key[0])
-        if not os.path.isdir(current_saving_path):
-            os.makedirs(current_saving_path, exist_ok=True)
-        if split_key[0] == 'opt':
-            for i in range(no_labels):
-                file_name = key + '_' + str(i)
-                np.save(os.path.join(current_saving_path, file_name), value_dict[key][i])
-        elif split_key[0] == 'all' and not fast:
-            for i in range(no_labels):
-                for j in range(no_labels):
-                    file_name = key + '_' + str(i) + '_' + str(j)
-                    np.save(os.path.join(current_saving_path, file_name), value_dict[key][i][j])
-
-    loading_path = os.path.join(saving_path, 'opt')
-    true_angles = [None] * no_labels
-    false_angles = [None] * no_labels
-    true_distances = [None] * no_labels
-    false_distances = [None] * no_labels
-    for i in range(no_labels):
-        true_angles[i] = np.load(os.path.join(loading_path, 'opt_true_angles_' + str(i) + '.npy'))
-        false_angles[i] = np.load(os.path.join(loading_path, 'opt_false_angles_' + str(i) + '.npy'))
-        true_distances[i] = np.load(os.path.join(loading_path, 'opt_true_distances_' + str(i) + '.npy'))
-        false_distances[i] = np.load(os.path.join(loading_path, 'opt_false_distances_' + str(i) + '.npy'))
-
-    true_angles = np.hstack(true_angles)
-    false_angles = np.hstack(false_angles)
-    true_distances = np.hstack(true_distances)
-    false_distances = np.hstack(false_distances)
-
-    savemat(loading_path + arg.network_type_fine + '_' + arg.network_number + '_angles_distances.mat',
-            dict(true_angles=true_angles, false_angles=false_angles,
-                 true_distances=true_distances, false_distances=false_distances))
+    return true_angles, true_correlations, true_distances, false_angles, false_correlations, false_distances
 
 
-def compare_linear_functions(compute_angles, compute_correlations, compute_distances):
+def compare_linear_functions(arg):
     arg.network_number = network_number
     terms_0, _, _ = load_tropical_function(arg, folder_name, arg.data_type, epoch_number, sign='linear')
     arg.network_number = network_number_1
     terms_1, _, _ = load_tropical_function(arg, folder_name, arg.data_type, epoch_number, sign='linear')
-    if compute_angles:
-        angles = compute_1_1_angles(terms_0, terms_1)
-    else:
-        angles = 0
-    if compute_correlations:
-        correlations = compute_1_1_correlations(terms_0, terms_1)
-        if epoch_number == '00':
-            correlations[0] = 0
-    else:
-        correlations = 0
-    if compute_distances:
-        distances = compute_1_1_euclidean_distances(terms_0, terms_1)
-    else:
-        distances = 0
-    return angles, correlations, distances
+    return compute_similarity(terms_0, terms_1, epoch_number)
 
 
 def compare_activation_patterns():
@@ -981,6 +802,18 @@ if arg.mode == 'save_linear_coefficients_to_mat':
     maxs = []
     selected_terms = []
 
+if arg.mode == 'exp9_compute_coefficient_statistics':
+    true_angles = []
+    true_correlations = []
+    true_distances = []
+    false_angles = []
+    false_correlations = []
+    false_distances = []
+    network = load_network(arg, '00')
+    folder_name = get_folder_name(network, index=0)
+    no_labels = get_no_labels(network)
+
+
 if arg.mode == 'exp11_compare_linear_functions':
     angles = []
     correlations = []
@@ -998,7 +831,7 @@ if arg.mode == 'compute_network_accuracies':
 
 for epoch_number in epoch_numbers:
     print('Epoch number: ' + str(epoch_number))
-    if not arg.mode == 'exp11_compare_linear_functions':
+    if arg.mode not in ['exp9_compute_coefficient_statistics', 'exp11_compare_linear_functions']:
         network = load_network(arg, epoch_number)
         no_labels = get_no_labels(network)
     if arg.mode == 'exp1_count':
@@ -1021,14 +854,22 @@ for epoch_number in epoch_numbers:
     elif arg.mode == 'exp8_extract_weight_matrices':
         extract_weight_matrices()
     elif arg.mode == 'exp9_compute_coefficient_statistics':
-        compute_coefficient_statistics(arg, arg.fast)
+        new_true_angles, new_true_correlations, new_true_distances, \
+        new_false_angles, new_false_correlations, new_false_distances = \
+            compute_coefficient_statistics(arg)
+        true_angles.append(new_true_angles)
+        true_correlations.append(new_true_correlations)
+        true_distances.append(new_true_distances)
+        false_angles.append(new_false_angles)
+        false_correlations.append(new_false_correlations)
+        false_distances.append(new_false_distances)
     elif arg.mode == 'exp10_slide_extracted_function_over_image':
         if arg.extract_all_dimensions:
             slide_extracted_function_batchwise_over_image()
         else:
             slide_extracted_function_over_image()
     elif arg.mode == 'exp11_compare_linear_functions':
-        new_angles, new_correlations, new_distances = compare_linear_functions(True, True, True)
+        new_angles, new_correlations, new_distances = compare_linear_functions(arg)
         angles.append(new_angles)
         correlations.append(new_correlations)
         distances.append(new_distances)
@@ -1060,16 +901,26 @@ if arg.mode == 'compute_network_accuracies':
     path = os.path.join(saving_directory_without_network_number, 'network_accuracies.csv')
     np.savetxt(path, network_accuracies, delimiter=",")
 
-if arg.mode == 'exp11_compare_linear_functions':
-    # arg.network_number = network_number
-    # chosen_terms_0 = np.array(chosen_terms_0)
-    # saving_directory = get_saving_directory(arg)
-    # np.save(os.path.join(saving_directory, 'chosen_terms_' + str(arg.network_number)), chosen_terms_0)
-    # arg.network_number = network_number_1
-    # chosen_terms_1 = np.array(chosen_terms_1)
-    # saving_directory = get_saving_directory(arg)
-    # np.save(os.path.join(saving_directory, 'chosen_terms_' + str(arg.network_number)), chosen_terms_1)
+if arg.mode == 'exp9_compute_coefficient_statistics':
+    true_angles = np.array(true_angles)
+    true_correlations = np.vstack(true_correlations)
+    true_distances = np.array(true_distances)
+    false_angles = np.array(false_angles)
+    false_correlations = np.vstack(false_correlations)
+    false_distances = np.array(false_distances)
+    directory = create_directory('/home', getpass.getuser(), 'Documents/MATLAB/tropex/Data/Exp9')
+    if arg.data_set == 'MNIST':
+        architecture = arg.network_type_fine
+    else:
+        architecture = arg.network_type_coarse
+    ending = '.mat'
+    file_name = '_'.join([arg.data_set, architecture, arg.data_type])
+    file_name = ''.join([file_name, ending])
+    path = os.path.join(directory, file_name)
+    savemat(path, {'true_angles': true_angles, 'true_correlations': true_correlations, 'true_distances': true_distances,
+                   'false_angles': false_angles, 'false_correlations': false_correlations, 'false_distances': false_distances})
 
+if arg.mode == 'exp11_compare_linear_functions':
     angles = np.vstack(angles)
     correlations = np.vstack(correlations)
     distances = np.vstack(distances)

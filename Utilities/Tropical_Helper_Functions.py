@@ -30,16 +30,19 @@ def evaluate_tropical_function(data, labels, pos_terms, neg_terms=None):
     # Output:
     # (no_labels, no_data_points)-sized array
 
-    no_labels = int(np.max(labels) + 1)
-    pos_result = [None] * no_labels
-    for label in range(no_labels):
-        current_terms = pos_terms[labels == label]
-        pos_result[label] = np.max(np.dot(current_terms[:, 1:], data) + current_terms[:, 0:1], axis=0)
-    if neg_terms is not None:
-        neg_result = [None] * no_labels
+    def compute_result(terms):
+        result = [-np.ones(no_data_points)] * no_labels
         for label in range(no_labels):
-            current_terms = neg_terms[labels == label]
-            neg_result[label] = np.max(np.dot(current_terms[:, 1:], data) + current_terms[:, 0:1], axis=0)
+            current_terms = terms[labels == label]
+            if len(current_terms) > 0:
+                result[label] = np.max(np.dot(current_terms[:, 1:], data) + current_terms[:, 0:1], axis=0)
+        return result
+
+    no_labels = int(np.max(labels) + 1)
+    no_data_points = data.shape[1]
+    pos_result = compute_result(pos_terms)
+    if neg_terms is not None:
+        neg_result = compute_result(neg_terms)
         return np.vstack(pos_result), np.vstack(neg_result)
     return np.vstack(pos_result)
 
@@ -54,7 +57,7 @@ def evaluate_network_on_subgrouped_data(network, data_batches):
     return x_train_predicted
 
 
-def get_current_data(network, grouped_data, layer_idx, no_data_groups=None):
+def get_current_data(grouped_data, layer_idx, network=None, no_data_groups=None):
     if layer_idx == 0:
         current_data = np.vstack(grouped_data)
     else:
@@ -162,16 +165,17 @@ def stack_list_with_subgroups(terms):
     return np.concatenate(stacked_list)
 
 
-def get_tropical_test_labels(arg, network, grouped_test_data, layer_idx, epoch_number):
-    func_dir = get_tropical_function_directory(arg, network, layer_idx, 'test', epoch_number)
-    if os.path.isdir(func_dir):
-        current_data = get_current_data(network, grouped_test_data, layer_idx)
-        pos_terms = load_tropical_function(arg, network, 'training', epoch_number)
-        pos_result = evaluate_tropical_function(current_data, pos_terms)
-        tropical_test_labels = np.argmax(pos_result, axis=0)
-        return tropical_test_labels
-    else:
-        return None
+def get_max_indices(terms, test_data):
+    no_batches = len(test_data)
+    indices = [None] * no_batches
+    for batch_idx in range(no_batches):
+        test_data_batch = prepare_data_for_tropical_function(test_data[batch_idx])
+        indices[batch_idx] = np.argmax(np.dot(terms[:, 1:], test_data_batch) + terms[:, 0:1], axis=0)
+    return np.concatenate(indices)
+
+
+def get_tropical_test_labels(terms, labels, test_data):
+    return labels[get_max_indices(terms, test_data)]
 
 
 def load_tropical_function_batch(save_dir, batch_idx, load_negative=False):
@@ -321,8 +325,7 @@ def get_epoch_numbers(arg):
                 '125', '130', '135', '140', '145', '150', '155', '160', '165', '170', '175', '180', '185', '190', '195',
                 '200']
     elif arg.epochs == 'special':
-        return ['160', '165', '170', '175', '180', '185', '190', '195',
-                '200']
+        return ['145', '150', '155', '160', '165', '170', '175', '180', '185', '190', '195', '200']
     else:
         return [None]
 
@@ -374,26 +377,32 @@ def normalize(matrix):
     return matrix / np.linalg.norm(matrix, axis=1, keepdims=True)
 
 
-def compute_1_1_euclidean_distances(A, B):
-    return np.linalg.norm(A - B, axis=1)
+def compute_similarity(terms_0, terms_1,epoch_number):
+    def compute_1_1_angles(A, B):
+        A = normalize(A)
+        B = normalize(B)
+        # clipping because there may be values slightly above 1/below -1
+        return np.arccos(np.clip(np.einsum('ij,ij->i', A, B), -1, 1))
 
+    def compute_1_1_correlations(A, B):
+        A -= np.mean(A, axis=0, keepdims=True)
+        B -= np.mean(B, axis=0, keepdims=True)
+        A_B = np.sum(A * B, axis=0)
+        A_A = np.sum(A * A, axis=0)
+        B_B = np.sum(B * B, axis=0)
+        divisor = np.sqrt(A_A) * np.sqrt(B_B)
+        correlation = np.divide(A_B, divisor, out=np.ones_like(A_B), where=(divisor != 0))
+        return correlation
 
-def compute_1_1_angles(A, B):
-    A = normalize(A)
-    B = normalize(B)
-    # clipping because there may be values slightly above 1/below -1
-    return np.arccos(np.clip(np.einsum('ij,ij->i', A, B), -1, 1))
+    def compute_distances(A, B):
+        return np.linalg.norm(A - B, axis=1)
 
-
-def compute_1_1_correlations(A, B):
-    A -= np.mean(A, axis=0, keepdims=True)
-    B -= np.mean(B, axis=0, keepdims=True)
-    A_B = np.sum(A * B, axis=0)
-    A_A = np.sum(A * A, axis=0)
-    B_B = np.sum(B * B, axis=0)
-    divisor = np.sqrt(A_A) * np.sqrt(B_B)
-    correlation = np.divide(A_B, divisor, out=np.ones_like(A_B), where=(divisor != 0))
-    return correlation
+    angles = compute_1_1_angles(terms_0, terms_1)
+    correlations = compute_1_1_correlations(terms_0, terms_1)
+    if epoch_number == '00':
+        correlations[0] = 0
+    distances = compute_distances(terms_0, terms_1)
+    return angles, correlations, distances
 
 
 def shift_array(array, v_shift, h_shift, filling='zeros'):

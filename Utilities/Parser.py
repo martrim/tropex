@@ -6,8 +6,8 @@ def parse_arguments(print_args=True):
     parser = argparse.ArgumentParser(description='Parsing Arguments.')
 
     # Mandatory Arguments
-    parser.add_argument('--gpu', default='0', type=str, help='gpu number (default: 0)')
-    parser.add_argument('--epochs', default='none', choices=['none', 'all', 'special'],
+    parser.add_argument('--gpu', default='', type=str, help='gpu number (default: 0)')
+    parser.add_argument('--epochs', default='all', choices=['none', 'all', 'special'],
                         help='specify which epochs are used')
     parser.add_argument('--data_set', default='MNIST', choices=['MNIST', 'CIFAR10', 'Fashion MNIST'],
                         help='type of architecture used for training (default: CIFAR10)')
@@ -15,7 +15,7 @@ def parse_arguments(print_args=True):
                         help="use training or test data")
     parser.add_argument('--network_type_coarse', default='MNIST', choices=['-', 'AllCNN', 'FCN', 'ResNet', 'VGG', 'MNIST'],
                         help='type of architecture used for training (default: VGG)')
-    parser.add_argument('--network_type_fine', default='Convolutional',
+    parser.add_argument('--network_type_fine', default='FCN4',
                         choices=['Standard', 'Narrow', 'Narrow_with_strides', '8_Layers', 'v1', 'Convolutional', 'FCN4', 'FCN6', 'Wide'],
                         help='name of network structure used for training (default: Standard)')
     parser.add_argument('--early_stopping', dest='early_stopping', action='store_true',
@@ -78,7 +78,7 @@ def parse_arguments(print_args=True):
                         help="saving all intermediate tropical functions")
 
     # Experiment Argument
-    parser.add_argument('--mode', default='exp11_compare_linear_functions',
+    parser.add_argument('--mode', default='exp9_compute_coefficient_statistics',
                         choices=['transformation', 'evaluation', 'exp1_count', 'exp2_val', 'exp3_compare',
                                  'exp4_variation', 'exp5_compute_translation_invariance', 'exp6_add_shifted_functions',
                                  'exp7_implications', 'exp8_extract_weight_matrices',
@@ -102,8 +102,8 @@ def parse_arguments(print_args=True):
     # For ResNet, use weight_decay = 1e-4, learning rate scheduler and batch_size=32.
     if "PYCHARM_HOSTED" in os.environ:
         print('Running in Pycharm.')
-        arg = parser.parse_args(['--early_stopping'])
-        # arg = parser.parse_args(['--weight_decay', '--lr_schedule'])
+        # arg = parser.parse_args(['--early_stopping'])
+        arg = parser.parse_args(['--weight_decay', '--lr_schedule'])
     else:
         arg = parser.parse_args()
 

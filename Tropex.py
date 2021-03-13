@@ -196,6 +196,7 @@ logger = get_logger(arg)
 epoch_numbers = get_epoch_numbers(arg)
 
 for epoch_number in epoch_numbers:
+    print('')
     print('Epoch number: ' + str(epoch_number))
     logger.info('Epoch number: ' + str(epoch_number))
     network = load_network(arg, epoch_number)
