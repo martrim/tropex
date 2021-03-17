@@ -7,7 +7,7 @@ def parse_arguments(print_args=True):
 
     # Mandatory Arguments
     parser.add_argument('--gpu', default='', type=str, help='gpu number (default: 0)')
-    parser.add_argument('--epochs', default='all', choices=['none', 'all', 'special'],
+    parser.add_argument('--epochs', default='special', choices=['none', 'all', 'special'],
                         help='specify which epochs are used')
     parser.add_argument('--data_set', default='MNIST', choices=['MNIST', 'CIFAR10', 'Fashion MNIST'],
                         help='type of architecture used for training (default: CIFAR10)')

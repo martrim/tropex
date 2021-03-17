@@ -542,20 +542,19 @@ def slide_extracted_function_batchwise_over_image():
 
 
 def compute_coefficient_statistics(arg):
-    pos_training_terms, _, network_labels_training = load_tropical_function(arg, folder_name, 'training', epoch_number,
+    pos_training_terms, _, _ = load_tropical_function(arg, folder_name, 'training', epoch_number,
                                                                             sign='pos')
+    training_terms, true_labels_training, network_labels_training = load_tropical_function(arg, folder_name, 'training', epoch_number, sign='linear')
+    test_terms, true_labels_test, network_labels_test = load_tropical_function(arg, folder_name, 'test', epoch_number, sign='linear')
+
     arg.data_type = 'test'
-    test_data_batches, _, network_labels_test = get_batch_data(arg, network)
+    test_data_batches, _, _ = get_batch_data(arg, network)
     max_training_indices = get_max_indices(pos_training_terms, test_data_batches)
     tropical_test_labels = network_labels_training[max_training_indices]
-    network_labels_test = np.concatenate(network_labels_test)
     tropical_agreement = tropical_test_labels == network_labels_test
     tropical_disagreement = tropical_test_labels != network_labels_test
     correct_indices = max_training_indices[tropical_agreement]
     incorrect_indices = max_training_indices[tropical_disagreement]
-
-    training_terms, _, _ = load_tropical_function(arg, folder_name, 'training', epoch_number, sign='linear')
-    test_terms, _, _ = load_tropical_function(arg, folder_name, 'test', epoch_number, sign='linear')
 
     true_angles, true_correlations, true_distances = \
         compute_similarity(training_terms[correct_indices], test_terms[tropical_agreement], epoch_number)

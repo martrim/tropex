@@ -18,14 +18,14 @@ weight_decay="--weight_decay"
 standard_arguments="$gpu $epochs $network_number $network_number_2 $mode $lr_schedule $weight_decay $extraction_type"
 
 
-data_set="--data_set MNIST"
-network_type_coarse="--network_type_coarse MNIST"
-network_type_fine="--network_type_fine Convolutional"
+data_set="--data_set CIFAR10"
+network_type_coarse="--network_type_coarse VGG"
+network_type_fine="--network_type_fine Standard"
 architecture="$data_set $network_type_coarse $network_type_fine"
 # EXPERIMENTS
 counter=$((counter+1))
 bash $print_command $counter
-python $experiments $standard_arguments $architecture --data_type 'test' --network_number '0'
+python $experiments $standard_arguments $architecture --network_number '2'
 exit_status=$?
 bash $print_summary $counter $exit_status $gpu_number
 exit_statuses+=("$exit_status")

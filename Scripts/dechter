@@ -3,4 +3,4 @@ tropex_directory="/home/martint/tropex/"
 script_directory="${tropex_directory}Scripts/"
 
 nohup bash "${script_directory}dechter0" &> 0.out &
-nohup bash "${script_directory}dechter1" &> 1.out &
+#nohup bash "${script_directory}dechter1" &> 1.out &
